@@ -1,0 +1,46 @@
+from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
+from django.contrib.auth.models import User
+
+from .models import (
+    UserProfile, Gene, GeneVariant, Recommendation,
+    GeneVariantRecommendation, UserGenotype, UserRecommendation,
+    Article, Vitamin, GeneVitamin, VitaminGenotypeEffect, Vitamin, VitaminTestResult, DoctorComment, DoctorPatient, DoctorCommentHistory
+)
+
+
+# Явная карточка пользователя: блок «Группы» с двумя колонками (доступно / выбрано).
+# Роль врача в API: группа с именем «doctor» (создаётся в «Аутентификация и авторизация» → «Группы»).
+try:
+    admin.site.unregister(User)
+except admin.sites.NotRegistered:
+    pass
+
+
+@admin.register(User)
+class UserAdmin(DjangoUserAdmin):
+    filter_horizontal = ("groups", "user_permissions")
+    list_display = ("username", "email", "first_name", "last_name", "is_staff", "is_active")
+    list_filter = ("is_staff", "is_superuser", "is_active", "groups")
+
+
+@admin.register(Recommendation)
+class RecommendationAdmin(admin.ModelAdmin):
+    list_display = ('title', 'description', 'category')
+admin.site.register(UserProfile)
+admin.site.register(Gene)
+admin.site.register(GeneVariant)
+admin.site.register(GeneVariantRecommendation)
+admin.site.register(UserGenotype)
+admin.site.register(UserRecommendation)
+admin.site.register(Article)
+admin.site.register(GeneVitamin)
+admin.site.register(VitaminGenotypeEffect)
+admin.site.register(Vitamin)
+@admin.register(VitaminTestResult)
+class VitaminTestResultAdmin(admin.ModelAdmin):
+    list_filter = ('vitamin', 'test_date', 'user')
+    search_fields = ('user__username', 'vitamin__name')
+admin.site.register(DoctorPatient)
+admin.site.register(DoctorComment)
+admin.site.register(DoctorCommentHistory)

@@ -1,0 +1,21 @@
+
+{% extends "genapp/base.html" %}
+{% block title %}Генетический паспорт{% endblock %}
+{% block content %}
+  <h2>Генетический паспорт</h2>
+  <div class="row">
+    {% for item in user_genotypes %}
+      <div class="col-md-4 mb-3">
+        <div class="card">
+          <div class="card-header"><b>{{ item.gene_variant.gene.symbol }}</b> — {{ item.gene_variant.gene.full_name }}</div>
+          <div class="card-body">
+            <p>Генотип: <b>{{ item.gene_variant.genotype }}</b></p>
+            <p>Описание: {{ item.gene_variant.gene.effect_description }}</p>
+          </div>
+        </div>
+      </div>
+    {% empty %}
+      <p>Нет данных. Введите свои генетические данные.</p>
+    {% endfor %}
+  </div>
+{% endblock %}

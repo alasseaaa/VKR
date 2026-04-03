@@ -1,0 +1,48 @@
+{% extends 'genapp/base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-exclamation-triangle me-2"></i>Удаление результата
+                    </h5>
+                </div>
+                <div class="card-body text-center">
+                    <i class="bi bi-trash text-danger display-4 mb-3"></i>
+                    <h5 class="mb-3">Удалить результат анализа?</h5>
+                    
+                    <div class="alert alert-light">
+                        <strong>{{ test.vitamin.name }}</strong><br>
+                        Значение: <strong>{{ test.test_value }}</strong><br>
+                        Статус: 
+                        {% if test.status == "Норма" %}
+                            <span class="badge bg-success">Норма</span>
+                        {% elif test.status == "Дефицит" %}
+                            <span class="badge bg-danger">Дефицит</span>
+                        {% elif test.status == "Профицит" %}
+                            <span class="badge bg-warning">Профицит</span>
+                        {% endif %}
+                        <br>
+                        Дата: {{ test.test_date|date:"d.m.Y" }}
+                    </div>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                            <button type="submit" class="btn btn-danger">
+                                <i class="bi bi-trash me-1"></i>Да, удалить
+                            </button>
+                            <a href="{% url 'vitamin_tests' %}" class="btn btn-secondary">
+                                <i class="bi bi-x-circle me-1"></i>Отмена
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

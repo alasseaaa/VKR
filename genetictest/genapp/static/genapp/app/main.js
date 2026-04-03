@@ -1,0 +1,89 @@
+import { parseRoute } from "./router.js";
+import { showAlert, clearAlert } from "./components/alerts.js";
+import { renderSidebar } from "./components/sidebar.js";
+import { getAuth, isAuthed } from "./services/auth.js";
+import { api } from "./services/api.js";
+
+async function renderPage(route) {
+  const pageEl = document.getElementById("page");
+  if (!pageEl) return;
+  pageEl.innerHTML = "";
+
+  const auth = getAuth();
+  const ctx = { api, auth, showAlert };
+
+  const requireAuth = (name) => {
+    const publicRoutes = new Set(["login", "register", "articles", "article-detail"]);
+    return !publicRoutes.has(name);
+  };
+
+  if (!isAuthed() && requireAuth(route.name)) {
+    window.location.hash = "#/login";
+    return;
+  }
+
+  if (route.name === "profile" && isAuthed() && auth.role === "doctor") {
+    window.location.hash = "#/doctor/patients";
+    return;
+  }
+
+  if (route.name === "redirect") {
+    if (!isAuthed()) window.location.hash = "#/login";
+    else {
+      if (auth.role === "patient") window.location.hash = "#/dashboard";
+      else if (auth.role === "doctor") window.location.hash = "#/doctor/patients";
+      else window.location.hash = "#/admin/genes";
+    }
+    return;
+  }
+
+  const moduleMap = {
+    login: () => import("./pages/login.js"),
+    register: () => import("./pages/register.js"),
+    articles: () => import("./pages/articles.js"),
+    "article-detail": () => import("./pages/articles.js"),
+    dashboard: () => import("./pages/dashboard.js"),
+    genotypes: () => import("./pages/genotypes.js"),
+    "vitamin-tests": () => import("./pages/vitaminTests.js"),
+    recommendations: () => import("./pages/recommendations.js"),
+    passport: () => import("./pages/passport.js"),
+    profile: () => import("./pages/profile.js"),
+    "doctor-patients": () => import("./pages/doctor/patients.js"),
+    "doctor-profile": () => import("./pages/doctor/profile.js"),
+    "admin-genes": () => import("./pages/admin/genes.js"),
+    "admin-gene-variants": () => import("./pages/admin/geneVariants.js"),
+    "admin-recommendations": () => import("./pages/admin/recommendations.js"),
+  };
+
+  const loader = moduleMap[route.name];
+  if (!loader) {
+    pageEl.innerHTML = `<div class="card"><div class="card-body">Страница не найдена.</div></div>`;
+    return;
+  }
+
+  const mod = await loader();
+  if (typeof mod.render !== "function") {
+    pageEl.innerHTML = `<div class="alert alert-danger">Некорректная страница.</div>`;
+    return;
+  }
+
+  await mod.render(pageEl, { ...ctx, route });
+}
+
+async function renderApp() {
+  clearAlert();
+  renderSidebar();
+  const route = parseRoute();
+  try {
+    await renderPage(route);
+  } catch (e) {
+    showAlert("danger", e?.message || "Ошибка");
+  }
+}
+
+window.addEventListener("hashchange", () => {
+  renderApp();
+});
+
+renderApp();
+

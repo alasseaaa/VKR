@@ -1,0 +1,282 @@
+{% extends 'genapp/base.html' %}
+
+{% block title %}Анализы на витамины{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3 mb-0">
+                <i class="bi bi-droplet text-primary me-2"></i>Анализы на витамины
+            </h1>
+            <p class="text-muted small">Введите результаты ваших анализов для автоматической оценки</p>
+        </div>
+    </div>
+
+    <!-- Статистика -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary bg-opacity-10 border-primary">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title text-primary">{{ tests_count }}</h5>
+                            <p class="card-text small mb-0">Всего анализов</p>
+                        </div>
+                        <i class="bi bi-clipboard-data text-primary fs-3"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success bg-opacity-10 border-success">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title text-success">{{ normal_count }}</h5>
+                            <p class="card-text small mb-0">В норме</p>
+                        </div>
+                        <i class="bi bi-check-circle text-success fs-3"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger bg-opacity-10 border-danger">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title text-danger">{{ deficiency_count }}</h5>
+                            <p class="card-text small mb-0">Дефицит</p>
+                        </div>
+                        <i class="bi bi-exclamation-triangle text-danger fs-3"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning bg-opacity-10 border-warning">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title text-warning">{{ excess_count }}</h5>
+                            <p class="card-text small mb-0">Профицит</p>
+                        </div>
+                        <i class="bi bi-exclamation-diamond text-warning fs-3"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Форма ввода -->
+        <div class="col-lg-4 mb-4">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="bi bi-plus-circle me-2"></i>Добавить результат
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label class="form-label small">Витамин</label>
+                            {{ form.vitamin }}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label small">Результат анализа</label>
+                            {{ form.test_value }}
+                            <div class="form-text">
+                                Введите числовое значение
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label small">Дата анализа</label>
+                            {{ form.test_date }}
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-save me-1"></i>Проверить результат
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Справочник витаминов -->
+            <div class="card mt-3">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0">
+                        <i class="bi bi-info-circle me-2"></i>Референсные значения
+                    </h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        {% for vitamin in vitamins %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <strong class="small">{{ vitamin.name }}</strong>
+                                    {% if vitamin.ref_min and vitamin.ref_max %}
+                                    <div class="text-muted">
+                                        <small>Норма: {{ vitamin.ref_min }}–{{ vitamin.ref_max }} {{ vitamin.unit_test }}</small>
+                                    </div>
+                                    {% else %}
+                                    <div class="text-muted">
+                                        <small>Референсные значения не указаны</small>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <span class="badge bg-light text-dark small">{{ vitamin.unit_test }}</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Таблица результатов -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-list-check me-2"></i>История ваших анализов
+                    </h5>
+                    <span class="badge bg-primary">{{ user_tests|length }} записей</span>
+                </div>
+                <div class="card-body p-0">
+                    {% if user_tests %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Витамин</th>
+                                    <th>Результат</th>
+                                    <th>Норма</th>
+                                    <th>Статус</th>
+                                    <th>Дата</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for test in user_tests %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ test.vitamin.name }}</strong>
+                                        <br>
+                                        <small class="text-muted">{{ test.vitamin.unit_test }}</small>
+                                    </td>
+                                    <td>
+                                        <strong>{{ test.test_value }}</strong>
+                                    </td>
+                                    <td>
+                                        {% if test.vitamin.ref_min and test.vitamin.ref_max %}
+                                            {{ test.vitamin.ref_min }}–{{ test.vitamin.ref_max }}
+                                        {% else %}
+                                            <span class="text-muted">—</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if test.status == "Норма" %}
+                                            <span class="badge bg-success">Норма</span>
+                                        {% elif test.status == "Дефицит" %}
+                                            <span class="badge bg-danger">Дефицит</span>
+                                    {% elif test.status == "Профицит" %}
+                                        <span class="badge bg-warning">Профицит</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ test.status }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ test.test_date|date:"d.m.Y" }}</td>
+                                    <td>
+                                        <a href="{% url 'vitamin_test_delete' test.id %}" 
+                                           class="btn btn-sm btn-outline-danger"
+                                           onclick="return confirm('Удалить этот результат анализа?')">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-clipboard-x display-6 text-muted mb-3"></i>
+                        <h5 class="text-muted">Нет результатов анализов</h5>
+                        <p class="text-muted small">Добавьте свой первый результат анализа</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Информация о системе -->
+            {% if user_tests %}
+            <div class="card mt-3">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0">
+                        <i class="bi bi-lightbulb me-2"></i>Как работает система
+                    </h6>
+                </div>
+                <div class="card-body small">
+                    <div class="row">
+                        <div class="col-md-4 mb-2">
+                            <div class="d-flex align-items-center">
+                                <span class="badge bg-success me-2">Норма</span>
+                                <span>В пределах референсных значений</span>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <div class="d-flex align-items-center">
+                                <span class="badge bg-danger me-2">Дефицит</span>
+                                <span>Ниже минимального значения</span>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <div class="d-flex align-items-center">
+                                <span class="badge bg-warning me-2">Профицит</span>
+                                <span>Выше максимального значения</span>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="mt-2 mb-0">
+                        <small class="text-muted">
+                            Система сравнивает ваш результат с референсными значениями из базы данных.
+                            Для точной диагностики проконсультируйтесь с врачом.
+                        </small>
+                    </p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+    .table th {
+        font-weight: 600;
+        font-size: 0.85rem;
+        padding: 12px 8px;
+    }
+    
+    .table td {
+        vertical-align: middle;
+        padding: 10px 8px;
+    }
+    
+    .badge {
+        font-size: 0.75rem;
+        padding: 4px 8px;
+    }
+    
+    .list-group-item {
+        padding: 10px 15px;
+        border-color: rgba(0,0,0,0.05);
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,364 @@
+<!-- genapp/templates/genapp/articles.html -->
+{% extends "genapp/base.html" %}
+{% load static %}
+
+{% block title %}Статьи по генетике{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">
+                <i class="bi bi-newspaper me-2"></i>Научные статьи по генетике
+            </h1>
+            
+            <!-- Панель фильтров и поиска -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <form method="get" action="{% url 'articles' %}" class="row g-3">
+                        <!-- Поиск по тексту -->
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="bi bi-search"></i>
+                                </span>
+                                <input type="text" 
+                                       class="form-control" 
+                                       name="q" 
+                                       placeholder="Поиск по заголовку или содержанию..." 
+                                       value="{{ request.GET.q|default:'' }}">
+                                {% if request.GET.q %}
+                                    <a href="{% url 'articles' %}{% if request.GET.category %}?category={{ request.GET.category }}{% endif %}" 
+                                       class="btn btn-outline-secondary" 
+                                       type="button">
+                                        <i class="bi bi-x"></i>
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Фильтр по категории -->
+                        <div class="col-md-4">
+                            <select name="category" class="form-select" onchange="this.form.submit()">
+                                <option value="">Все категории</option>
+                                {% for cat_value, cat_label in category_choices %}
+                                    <option value="{{ cat_value }}" 
+                                            {% if request.GET.category == cat_value %}selected{% endif %}>
+                                        {{ cat_label }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <!-- Кнопки -->
+                        <div class="col-md-2">
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary flex-grow-1">
+                                    <i class="bi bi-funnel me-1"></i>Применить
+                                </button>
+                                {% if request.GET.q or request.GET.category %}
+                                    <a href="{% url 'articles' %}" class="btn btn-outline-secondary">
+                                        <i class="bi bi-x-circle"></i>
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </form>
+                    
+                    <!-- Активные фильтры -->
+                    {% if request.GET.q or request.GET.category %}
+                    <div class="mt-3">
+                        <small class="text-muted">Активные фильтры:</small>
+                        <div class="d-flex flex-wrap gap-2 mt-1">
+                            {% if request.GET.q %}
+                                <span class="badge bg-info">
+                                    Поиск: "{{ request.GET.q }}"
+                                    <a href="?{% if request.GET.category %}category={{ request.GET.category }}{% endif %}" 
+                                       class="text-white ms-1">
+                                        <i class="bi bi-x"></i>
+                                    </a>
+                                </span>
+                            {% endif %}
+                            
+                            {% if request.GET.category %}
+                                <span class="badge bg-primary">
+                                    Категория: {{ selected_category_label }}
+                                    <a href="?{% if request.GET.q %}q={{ request.GET.q }}{% endif %}" 
+                                       class="text-white ms-1">
+                                        <i class="bi bi-x"></i>
+                                    </a>
+                                </span>
+                            {% endif %}
+                            
+                            {% if articles|length != total_articles %}
+                                <span class="badge bg-success">
+                                    Найдено: {{ articles|length }} из {{ total_articles }}
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Статистика -->
+            <div class="row row-cols-1 row-cols-md-3 g-4 mb-4">
+                <div class="col">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body text-center py-4">
+                            <h6 class="card-title text-muted mb-3">Всего статей</h6>
+                            <h2 class="text-primary">{{ total_articles }}</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body text-center py-4">
+                            <h6 class="card-title text-muted mb-3">Уникальных генов</h6>
+                            <h2 class="text-success">{{ unique_genes_count }}</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body text-center py-4">
+                            <h6 class="card-title text-muted mb-3">Статей найдено</h6>
+                            <h2 class="text-warning">{{ articles|length }}</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Быстрые фильтры по категориям -->
+            <div class="mb-4">
+                <h5 class="mb-3">
+                    <i class="bi bi-tags me-2"></i>
+                    Быстрый выбор категорий
+                </h5>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{% url 'articles' %}{% if request.GET.q %}?q={{ request.GET.q }}{% endif %}" 
+                       class="badge {% if not request.GET.category %}bg-primary{% else %}bg-secondary{% endif %} text-decoration-none px-3 py-2">
+                        Все категории
+                        <span class="badge bg-light text-dark ms-1">{{ total_articles }}</span>
+                    </a>
+                    
+                    {% for cat_value, cat_label in category_choices %}
+                        {% for count in category_counts %}
+                            {% if count.category == cat_value %}
+                                <a href="?category={{ cat_value }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" 
+                                   class="badge {% if request.GET.category == cat_value %}bg-primary{% else %}bg-secondary{% endif %} text-decoration-none px-3 py-2">
+                                    {{ cat_label }}
+                                    <span class="badge bg-light text-dark ms-1">{{ count.total }}</span>
+                                </a>
+                            {% endif %}
+                        {% endfor %}
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- Список статей -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-secondary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="bi bi-journal-text me-2"></i>
+                            {% if request.GET.q or request.GET.category %}
+                                Результаты поиска
+                            {% else %}
+                                Все статьи
+                            {% endif %}
+                        </h5>
+                        <span class="badge bg-light text-dark">
+                            {{ articles|length }} из {{ total_articles }}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="card-body">
+                    {% if articles %}
+                        <div class="row">
+                            {% for article in articles %}
+                            <div class="col-lg-6 mb-4">
+                                <div class="card h-100 border-light shadow-sm article-card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">
+                                            {{ article.title }}
+                                            {% if article.gene %}
+                                                <span class="badge bg-primary ms-2">
+                                                    {{ article.gene.symbol }}
+                                                </span>
+                                            {% endif %}
+                                        </h5>
+                                        
+                                        <div class="mb-3">
+                                            <span class="badge bg-info">{{ article.get_category_display }}</span>
+                                            <small class="text-muted ms-2">
+                                                <i class="bi bi-calendar me-1"></i>
+                                                {{ article.created_at|date:"d.m.Y" }}
+                                            </small>
+                                            {% if article.author %}
+                                                <small class="text-muted ms-2">
+                                                    <i class="bi bi-person me-1"></i>
+                                                    {{ article.author }}
+                                                </small>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <p class="card-text article-content">
+                                            {{ article.content|truncatechars:250 }}
+                                        </p>
+                                        
+                                        {% if article.gene %}
+                                            <div class="mb-3">
+                                                <small class="text-muted">
+                                                    <i class="bi bi-dna me-1"></i>
+                                                    <strong>Ген:</strong> {{ article.gene.full_name }}
+                                                </small>
+                                            </div>
+                                        {% endif %}
+                                        
+                                        <div class="d-flex justify-content-between align-items-center mt-3">
+                                            {% if article.source_url %}
+                                                <a href="{{ article.source_url }}" 
+                                                   target="_blank" 
+                                                   class="btn btn-sm btn-outline-primary">
+                                                    <i class="bi bi-link-45deg me-1"></i>
+                                                    Источник
+                                                </a>
+                                            {% endif %}
+                                            
+                                            <button type="button" 
+                                                    class="btn btn-sm btn-outline-secondary"
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#articleModal{{ article.id }}">
+                                                <i class="bi bi-arrows-fullscreen me-1"></i>
+                                                Подробнее
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Модальное окно для полной статьи -->
+                                <div class="modal fade" id="articleModal{{ article.id }}" tabindex="-1">
+                                    <div class="modal-dialog modal-lg">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">{{ article.title }}</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <div class="mb-3">
+                                                    {% if article.gene %}
+                                                        <span class="badge bg-primary">{{ article.gene.symbol }}</span>
+                                                    {% endif %}
+                                                    <span class="badge bg-info">{{ article.get_category_display }}</span>
+                                                    <small class="text-muted ms-2">{{ article.created_at|date:"d.m.Y" }}</small>
+                                                </div>
+                                                
+                                                <div class="article-full-content">
+                                                    {{ article.content|linebreaks }}
+                                                </div>
+                                                
+                                                {% if article.gene %}
+                                                    <div class="card mt-3">
+                                                        <div class="card-header">
+                                                            <h6 class="mb-0">Информация о гене</h6>
+                                                        </div>
+                                                        <div class="card-body">
+                                                            <p><strong>{{ article.gene.symbol }}</strong> — {{ article.gene.full_name }}</p>
+                                                            <p class="small">{{ article.gene.description|truncatechars:200 }}</p>
+                                                        </div>
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                                                {% if article.source_url %}
+                                                    <a href="{{ article.source_url }}" target="_blank" class="btn btn-primary">
+                                                        <i class="bi bi-box-arrow-up-right me-1"></i>
+                                                        Оригинал
+                                                    </a>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="alert alert-warning text-center py-5">
+                            <i class="bi bi-exclamation-triangle display-4 text-warning mb-3"></i>
+                            <h4>Статьи не найдены</h4>
+                            <p class="mb-2">
+                                {% if request.GET.q %}
+                                    По запросу "{{ request.GET.q }}" ничего не найдено.
+                                {% elif request.GET.category %}
+                                    В категории "{{ selected_category_label }}" пока нет статей.
+                                {% else %}
+                                    Статей пока нет.
+                                {% endif %}
+                            </p>
+                            <a href="{% url 'articles' %}" class="btn btn-outline-primary mt-2">
+                                <i class="bi bi-arrow-counterclockwise me-1"></i>
+                                Сбросить фильтры
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .article-card {
+        transition: transform 0.2s, box-shadow 0.2s;
+        border: 1px solid #e9ecef;
+    }
+    
+    .article-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border-color: #007bff;
+    }
+    
+    .article-content {
+        line-height: 1.6;
+        color: #444;
+    }
+    
+    .article-full-content {
+        line-height: 1.8;
+        font-size: 1.05rem;
+        color: #333;
+    }
+    
+    /* Стили для быстрых фильтров */
+    .badge.bg-secondary:hover {
+        background-color: #6c757d !important;
+    }
+    
+    .badge.bg-primary:hover {
+        background-color: #0056b3 !important;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Автоотправка формы поиска при нажатии Enter
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.querySelector('input[name="q"]');
+        if (searchInput) {
+            searchInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    this.form.submit();
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

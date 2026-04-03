@@ -1,0 +1,271 @@
+<!-- genapp/templates/genapp/recommendations.html -->
+{% extends "genapp/base.html" %}
+{% load static %}
+
+{% block title %}Мои рекомендации{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">
+                <i class="bi bi-heart me-2"></i>Мои рекомендации
+            </h1>
+            
+            <!-- Статистика -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-light h-100 border-0 shadow-sm">
+                        <div class="card-body text-center py-3">
+                            <h6 class="card-title text-muted mb-2">Всего рекомендаций</h6>
+                            <h3 class="text-primary">{{ total_recommendations }}</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-light h-100 border-0 shadow-sm">
+                        <div class="card-body text-center py-3">
+                            <h6 class="card-title text-muted mb-2">Ваших генов</h6>
+                            <h3 class="text-success">{{ user_genes_count }}</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-light h-100 border-0 shadow-sm">
+                        <div class="card-body text-center py-3">
+                            <h6 class="card-title text-muted mb-2">Категорий</h6>
+                            <h3 class="text-warning">{{ categories|length }}</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-light h-100 border-0 shadow-sm">
+                        <div class="card-body text-center py-3">
+                            <h6 class="card-title text-muted mb-2">На основе</h6>
+                            <h3 class="text-info">{{ user_genotypes_count }} генотипов</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Категории рекомендаций -->
+            {% if categories %}
+                {% for category_name, category_data in categories.items %}
+                <div class="category-section mb-5">
+                    <!-- Заголовок категории -->
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h3 class="mb-0">
+                            {% if category_name == 'sport' %}
+                                <i class="bi bi-activity me-2 text-success"></i>Спорт
+                            {% elif category_name == 'vitamins' %}
+                                <i class="bi bi-capsule me-2 text-warning"></i>Витамины
+                            {% elif category_name == 'nutrition' %}
+                                <i class="bi bi-egg-fried me-2 text-danger"></i>Питание
+                            {% elif category_name == 'general' %}
+                                <i class="bi bi-info-circle me-2 text-primary"></i>Общие
+                            {% else %}
+                                <i class="bi bi-card-checklist me-2"></i>{{ category_data.label }}
+                            {% endif %}
+                        </h3>
+                        <span class="badge rounded-pill bg-secondary">
+                            {{ category_data.recommendations|length }} рекомендаций
+                        </span>
+                    </div>
+                    
+                    <!-- Карточки рекомендаций -->
+                    <div class="row row-cols-1 row-cols-md-2 g-4">
+                        {% for rec in category_data.recommendations %}
+                        <div class="col">
+                            <div class="card h-100 recommendation-card border-0 shadow-sm 
+                                        {% if category_name == 'sport' %}border-start border-success border-4
+                                        {% elif category_name == 'vitamins' %}border-start border-warning border-4
+                                        {% elif category_name == 'nutrition' %}border-start border-danger border-4
+                                        {% elif category_name == 'general' %}border-start border-primary border-4
+                                        {% endif %}">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <h5 class="card-title mb-0">{{ rec.title }}</h5>
+                                        <span class="badge 
+                                            {% if category_name == 'sport' %}bg-success
+                                            {% elif category_name == 'vitamins' %}bg-warning text-dark
+                                            {% elif category_name == 'nutrition' %}bg-danger
+                                            {% elif category_name == 'general' %}bg-primary
+                                            {% else %}bg-secondary{% endif %}">
+                                            {{ category_data.label }}
+                                        </span>
+                                    </div>
+                                    
+                                    <p class="card-text">{{ rec.description|truncatechars:200 }}</p>
+                                    
+                                    <!-- Гены, связанные с рекомендацией -->
+                                    {% if rec.related_genes %}
+                                        <div class="mb-3">
+                                            <small class="text-muted">
+                                                <i class="bi bi-dna me-1"></i>
+                                                <strong>Связанные гены:</strong>
+                                                {% for gene in rec.related_genes %}
+                                                    <span class="badge bg-light text-dark me-1">{{ gene.symbol }}</span>
+                                                {% endfor %}
+                                            </small>
+                                        </div>
+                                    {% endif %}
+                                    
+                                    <!-- Дополнительная информация -->
+                                    <div class="d-flex justify-content-between align-items-center mt-3">
+                                        <small class="text-muted">
+                                            <i class="bi bi-calendar me-1"></i>
+                                            {{ rec.created_at|date:"d.m.Y" }}
+                                        </small>
+                                        
+                                        <button type="button" 
+                                                class="btn btn-sm btn-outline-primary"
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#recommendationModal{{ rec.id }}">
+                                            <i class="bi bi-arrows-fullscreen me-1"></i>
+                                            Подробнее
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Модальное окно с полной информацией -->
+                            <div class="modal fade" id="recommendationModal{{ rec.id }}" tabindex="-1">
+                                <div class="modal-dialog modal-lg">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">{{ rec.title }}</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <div class="mb-3">
+                                                <span class="badge 
+                                                    {% if category_name == 'sport' %}bg-success
+                                                    {% elif category_name == 'vitamins' %}bg-warning text-dark
+                                                    {% elif category_name == 'nutrition' %}bg-danger
+                                                    {% elif category_name == 'general' %}bg-primary
+                                                    {% else %}bg-secondary{% endif %}">
+                                                    {{ category_data.label }}
+                                                </span>
+                                                <small class="text-muted ms-2">
+                                                    <i class="bi bi-calendar me-1"></i>
+                                                    {{ rec.created_at|date:"d.m.Y" }}
+                                                </small>
+                                            </div>
+                                            
+                                            <div class="recommendation-content mb-4">
+                                                {{ rec.description|linebreaks }}
+                                            </div>
+                                            
+                                            {% if rec.related_genes %}
+                                            <div class="card">
+                                                <div class="card-header">
+                                                    <h6 class="mb-0">
+                                                        <i class="bi bi-dna me-2"></i>
+                                                        Связанные гены
+                                                    </h6>
+                                                </div>
+                                                <div class="card-body">
+                                                    <div class="row">
+                                                        {% for gene in rec.related_genes %}
+                                                        <div class="col-md-6 mb-2">
+                                                            <div class="card border-light">
+                                                                <div class="card-body py-2">
+                                                                    <strong>{{ gene.symbol }}</strong> 
+                                                                    <small class="text-muted">({{ gene.full_name }})</small>
+                                                                    <p class="small mb-0">{{ gene.description|truncatechars:100 }}</p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        {% endfor %}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="alert alert-info text-center py-5">
+                    <i class="bi bi-info-circle display-4 text-info mb-3"></i>
+                    <h4>Рекомендации не найдены</h4>
+                    <p class="mb-3">
+                        У вас пока нет персональных рекомендаций. 
+                        Добавьте свои генетические данные, чтобы получить рекомендации.
+                    </p>
+                    <a href="{% url 'genotype_input' %}" class="btn btn-primary">
+                        <i class="bi bi-database me-1"></i>
+                        Добавить генетические данные
+                    </a>
+                </div>
+            {% endif %}
+            
+            <!-- Без рекомендаций -->
+            {% if not recommendations and not categories %}
+            <div class="alert alert-warning text-center py-5">
+                <i class="bi bi-exclamation-triangle display-4 text-warning mb-3"></i>
+                <h4>Нет данных для рекомендаций</h4>
+                <p class="mb-3">У вас пока нет генетических данных или нет рекомендаций для ваших генотипов.</p>
+                <div class="d-flex justify-content-center gap-3">
+                    <a href="{% url 'genotype_input' %}" class="btn btn-primary">
+                        <i class="bi bi-database me-1"></i>
+                        Добавить генотипы
+                    </a>
+                    <a href="{% url 'articles' %}" class="btn btn-outline-primary">
+                        <i class="bi bi-newspaper me-1"></i>
+                        Читать статьи
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .recommendation-card {
+        transition: transform 0.3s, box-shadow 0.3s;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+    
+    .recommendation-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    }
+    
+    .category-section {
+        padding: 20px;
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    
+    .recommendation-content {
+        line-height: 1.8;
+        font-size: 1.05rem;
+        color: #333;
+    }
+    
+    /* Цвета категорий */
+    .border-success { border-color: #28a745 !important; }
+    .border-warning { border-color: #ffc107 !important; }
+    .border-danger { border-color: #dc3545 !important; }
+    .border-primary { border-color: #0d6efd !important; }
+    
+    .bg-success { background-color: #28a745 !important; }
+    .bg-warning { background-color: #ffc107 !important; }
+    .bg-danger { background-color: #dc3545 !important; }
+    .bg-primary { background-color: #0d6efd !important; }
+</style>
+{% endblock %}

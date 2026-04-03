@@ -1,0 +1,249 @@
+<!-- genapp/templates/genapp/genotype_input.html -->
+{% extends "genapp/base.html" %}
+{% block title %}Ввод генетических данных{% endblock %}
+{% block content %}
+<h2 class="mb-4">Ввод генетических данных</h2>
+
+<form method="post" id="genotype-form">
+  {% csrf_token %}
+  <div id="genes-list">
+    <div class="row gene-entry mb-3">
+      <div class="col-md-5">
+        <select class="form-select gene-select" name="gene" required>
+          <option value="">Выберите ген...</option>
+          {% for gene in available_genes %}
+            <option value="{{ gene.id }}" data-symbol="{{ gene.symbol }}">
+              {{ gene.symbol }} — {{ gene.full_name }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-5">
+        <select class="form-select variant-select" name="variant" required disabled>
+          <option>Сначала выберите ген</option>
+        </select>
+      </div>
+      <div class="col-md-2 d-flex align-items-center">
+        <button type="button" class="btn btn-outline-danger btn-sm remove-gene" style="display: none;">
+          <i class="bi bi-trash"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <div class="mb-4">
+    <button type="button" id="add-gene" class="btn btn-outline-success">
+      <i class="bi bi-plus-circle"></i> Добавить ген
+    </button>
+    <button type="submit" class="btn btn-primary ms-2">
+      <i class="bi bi-save"></i> Сохранить
+    </button>
+  </div>
+  
+  <!-- Сообщение об уже выбранных генах -->
+  {% if selected_genes %}
+  <div class="alert alert-info mt-3">
+    <h6><i class="bi bi-info-circle me-2"></i>Уже выбраны гены:</h6>
+    {% for gene in selected_genes %}
+      <span class="badge bg-secondary me-2">{{ gene.symbol }}</span>
+    {% endfor %}
+    <p class="mb-0 mt-2 small">Эти гены больше нельзя выбрать повторно.</p>
+  </div>
+  {% endif %}
+</form>
+
+<script>
+const geneVariants = {{ gene_variants_js|safe }};
+const selectedGenes = new Set({{ selected_gene_ids|safe }});
+
+// Функция обновления вариантов
+function updateVariants($row, geneId) {
+    const $variantSelect = $row.find('.variant-select');
+    $variantSelect.empty();
+    
+    if (!geneId || !geneVariants[geneId] || geneVariants[geneId].length === 0) {
+        $variantSelect.append('<option>Нет вариантов</option>');
+        $variantSelect.prop('disabled', true);
+    } else {
+        $variantSelect.append('<option value="">Выберите вариант...</option>');
+        geneVariants[geneId].forEach(function(opt) {
+            const riskText = opt.risk_type ? ` (${opt.risk_type})` : '';
+            $variantSelect.append('<option value="' + opt.id + '">' + opt.genotype + riskText + '</option>');
+        });
+        $variantSelect.prop('disabled', false);
+    }
+}
+
+// Функция обновления списка доступных генов
+function updateAvailableGenes() {
+    $('.gene-select').each(function() {
+        const $select = $(this);
+        const currentValue = $select.val();
+        
+        // Сохраняем выбранное значение
+        $select.find('option').each(function() {
+            const $option = $(this);
+            const geneId = $option.val();
+            
+            if (geneId && geneId !== currentValue && selectedGenes.has(parseInt(geneId))) {
+                $option.hide();
+            } else {
+                $option.show();
+            }
+        });
+        
+        // Если текущий выбранный ген уже используется в другой строке, очищаем
+        if (currentValue && selectedGenes.has(parseInt(currentValue))) {
+            const isCurrentRowSelected = $select.closest('.gene-entry').find('.gene-select').val() === currentValue;
+            if (!isCurrentRowSelected) {
+                $select.val('');
+                updateVariants($select.closest('.gene-entry'), '');
+            }
+        }
+    });
+}
+
+$(document).ready(function() {
+    // Инициализация
+    updateAvailableGenes();
+    
+    // При изменении гена
+    $('#genes-list').on('change', '.gene-select', function() {
+        const $row = $(this).closest('.gene-entry');
+        const geneId = $(this).val();
+        const geneSymbol = $(this).find('option:selected').data('symbol');
+        
+        // Добавляем/удаляем ген из выбранных
+        if (geneId) {
+            selectedGenes.add(parseInt(geneId));
+        } else {
+            const prevGeneId = $(this).data('prev-value');
+            if (prevGeneId) {
+                selectedGenes.delete(parseInt(prevGeneId));
+            }
+        }
+        
+        // Сохраняем предыдущее значение
+        $(this).data('prev-value', geneId);
+        
+        // Обновляем варианты и список доступных генов
+        updateVariants($row, geneId);
+        updateAvailableGenes();
+        
+        // Показываем/скрываем кнопку удаления
+        const $removeBtn = $row.find('.remove-gene');
+        if (geneId) {
+            $removeBtn.show();
+        } else {
+            $removeBtn.hide();
+        }
+    });
+    
+    // Кнопка "добавить ген"
+    $('#add-gene').on('click', function() {
+        const $firstRow = $('.gene-entry').first();
+        const $newRow = $firstRow.clone();
+        
+        // Очищаем значения
+        $newRow.find('.gene-select').val('');
+        $newRow.find('.variant-select').empty()
+            .append('<option>Сначала выберите ген</option>')
+            .prop('disabled', true);
+        $newRow.find('.remove-gene').hide();
+        
+        // Добавляем новую строку
+        $('#genes-list').append($newRow);
+        
+        // Обновляем список доступных генов
+        updateAvailableGenes();
+    });
+    
+    // Удаление строки
+    $('#genes-list').on('click', '.remove-gene', function() {
+        const $row = $(this).closest('.gene-entry');
+        const geneId = $row.find('.gene-select').val();
+        
+        // Удаляем ген из выбранных
+        if (geneId) {
+            selectedGenes.delete(parseInt(geneId));
+        }
+        
+        // Удаляем строку, если это не первая строка
+        if ($('.gene-entry').length > 1) {
+            $row.remove();
+            updateAvailableGenes();
+        } else {
+            // Если первая строка - очищаем ее
+            $row.find('.gene-select').val('');
+            $row.find('.variant-select').empty()
+                .append('<option>Сначала выберите ген</option>')
+                .prop('disabled', true);
+            $(this).hide();
+            updateAvailableGenes();
+        }
+    });
+    
+    // Валидация формы
+    $('#genotype-form').on('submit', function(e) {
+        let isValid = true;
+        const selectedGeneIds = new Set();
+        
+        $('.gene-entry').each(function() {
+            const $geneSelect = $(this).find('.gene-select');
+            const $variantSelect = $(this).find('.variant-select');
+            const geneId = $geneSelect.val();
+            
+            // Проверяем, что выбран ген
+            if (geneId && !$variantSelect.val()) {
+                isValid = false;
+                $variantSelect.addClass('is-invalid');
+                alert('Для выбранного гена необходимо выбрать вариант!');
+            } else {
+                $variantSelect.removeClass('is-invalid');
+            }
+            
+            // Проверяем уникальность генов
+            if (geneId) {
+                if (selectedGeneIds.has(geneId)) {
+                    isValid = false;
+                    $geneSelect.addClass('is-invalid');
+                    alert('Ген ' + $geneSelect.find('option:selected').text() + ' уже выбран!');
+                } else {
+                    selectedGeneIds.add(geneId);
+                    $geneSelect.removeClass('is-invalid');
+                }
+            }
+        });
+        
+        if (!isValid) {
+            e.preventDefault();
+            return false;
+        }
+        
+        return true;
+    });
+});
+</script>
+
+<style>
+.gene-entry {
+    padding: 15px;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    background-color: #f8f9fa;
+}
+
+.remove-gene {
+    transition: all 0.2s;
+}
+
+.remove-gene:hover {
+    transform: scale(1.1);
+}
+
+.is-invalid {
+    border-color: #dc3545 !important;
+}
+</style>
+{% endblock %}
