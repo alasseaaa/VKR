@@ -1,4 +1,5 @@
 import { clearAuth, getAuth, isAuthed } from "../services/auth.js";
+import { getWithoutGeneticTestFlag } from "../services/wellness.js";
 
 function navItemHtml(item, currentHash) {
   const active = item.external ? false : `#${item.href}` === currentHash;
@@ -36,12 +37,17 @@ export function renderSidebar() {
   items.push({ href: "/articles", label: "Статьи", icon: "bi-newspaper" });
 
   if (role === "patient") {
+    const wellness = getWithoutGeneticTestFlag();
     items.push({ href: "/dashboard", label: "Дашборд", icon: "bi-speedometer2" });
     items.push({ href: "/profile", label: "Профиль", icon: "bi-person-vcard" });
-    items.push({ href: "/genotypes", label: "Генетические данные", icon: "bi-dna" });
+    if (!wellness) {
+      items.push({ href: "/genotypes", label: "Генетические данные", icon: "bi-dna" });
+    }
     items.push({ href: "/vitamin-tests", label: "Анализы витаминов", icon: "bi-droplet" });
     items.push({ href: "/recommendations", label: "Рекомендации", icon: "bi-stars" });
-    items.push({ href: "/passport", label: "Генетический паспорт", icon: "bi-person-badge" });
+    if (!wellness) {
+      items.push({ href: "/passport", label: "Генетический паспорт", icon: "bi-person-badge" });
+    }
     items.push({ href: "/patient/consultations", label: "История консультаций", icon: "bi-chat-square-text" });
   } else if (role === "doctor") {
     items.push({ href: "/doctor/patients", label: "Пациенты", icon: "bi-people" });

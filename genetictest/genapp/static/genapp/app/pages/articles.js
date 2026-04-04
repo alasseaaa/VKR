@@ -1,8 +1,11 @@
+import { getWithoutGeneticTestFlag } from "../services/wellness.js";
+
 const CATEGORY_LABELS = {
   metabolism: "Метаболизм",
   sport: "Спорт",
   vitamins: "Витамины",
   nutrition: "Питание",
+  wellness: "Общее здоровье",
 };
 
 function escapeHtml(str) {
@@ -68,7 +71,7 @@ async function renderList(pageEl, { api, showAlert, auth }) {
   pageEl.innerHTML = `<div class="app-page"><p class="text-muted">Загрузка статей…</p></div>`;
 
   const mount = (list, state) => {
-    const { q, category } = state;
+    const { q, category, showWellnessHint } = state;
     pageEl.innerHTML = `
       <div class="app-page">
         <div class="app-page-header d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
@@ -78,6 +81,14 @@ async function renderList(pageEl, { api, showAlert, auth }) {
           </div>
           ${auth?.basicToken ? "" : `<a href="#/login" class="btn btn-outline-primary btn-sm">Войти</a>`}
         </div>
+
+        ${
+          showWellnessHint
+            ? `<div id="articles-wellness-hint" class="alert alert-success border-0 bg-success bg-opacity-10 small mb-3">
+                По умолчанию показана категория «Общее здоровье» — материалы без опоры на генетический тест. Выберите «Все категории» или сброс, чтобы увидеть весь каталог.
+              </div>`
+            : ""
+        }
 
         <div class="row g-3 mb-4">
           <div class="col-lg-6">
@@ -158,19 +169,29 @@ async function renderList(pageEl, { api, showAlert, auth }) {
       clearTimeout(debounce);
       debounce = setTimeout(runFetch, 450);
     });
-    catEl.addEventListener("change", runFetch);
+    catEl.addEventListener("change", () => {
+      pageEl.querySelector("#articles-wellness-hint")?.remove();
+      runFetch();
+    });
     pageEl.querySelector("#articles-apply").addEventListener("click", runFetch);
     pageEl.querySelector("#articles-reset").addEventListener("click", () => {
       qEl.value = "";
       catEl.value = "";
+      pageEl.querySelector("#articles-wellness-hint")?.remove();
       runFetch();
     });
   };
 
   try {
-    let list = await api.public.listArticles({});
+    const defaultWellness =
+      auth?.role === "patient" && getWithoutGeneticTestFlag() ? "wellness" : "";
+    let list = await api.public.listArticles(articleParams("", defaultWellness));
     if (!Array.isArray(list)) list = [];
-    mount(list, { q: "", category: "" });
+    mount(list, {
+      q: "",
+      category: defaultWellness,
+      showWellnessHint: Boolean(defaultWellness),
+    });
   } catch (err) {
     showAlert("danger", err.message);
     pageEl.innerHTML = `<div class="app-page"><div class="alert alert-danger">${escapeHtml(err.message)}</div></div>`;

@@ -11,6 +11,8 @@ function statusPill(status) {
   return `<span class="badge ${v.cls}">${v.label}</span>`;
 }
 
+import { getWithoutGeneticTestFlag } from "../services/wellness.js";
+
 function escapeHtml(str) {
   return String(str ?? "")
     .replaceAll("&", "&amp;")
@@ -103,8 +105,14 @@ export async function render(pageEl, { api, showAlert, auth }) {
       )
       .join("");
 
+    const recWellnessHint =
+      auth?.role === "patient" && getWithoutGeneticTestFlag()
+        ? `<div class="alert alert-light border small mb-3">Персональные рекомендации по генотипам появятся после добавления вариантов в разделе «Генетические данные» (его можно открыть по ссылке из <a href="#/profile">профиля</a>, если отключите режим без теста).</div>`
+        : "";
+
     pageEl.innerHTML = `
       <div class="app-page">
+      ${recWellnessHint}
       <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
         <div class="d-flex flex-wrap align-items-center gap-2">
           <h3 class="mb-0">Рекомендации</h3>

@@ -15,6 +15,7 @@ def register_user(
     last_name: str,
     password1: str,
     password2: str,
+    without_genetic_test: bool = False,
 ):
     if password1 != password2:
         raise DjangoValidationError({"password2": ["Пароли не совпадают."]})
@@ -36,7 +37,7 @@ def register_user(
     user.set_password(password1)
     user.save()
 
-    UserProfile.objects.create(user=user)
+    UserProfile.objects.create(user=user, without_genetic_test=bool(without_genetic_test))
     return user
 
 

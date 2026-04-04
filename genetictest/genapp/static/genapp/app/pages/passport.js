@@ -1,4 +1,5 @@
 import { doctorCommentsForMarkerHtml } from "../components/doctorComment.js";
+import { getWithoutGeneticTestFlag } from "../services/wellness.js";
 
 function escapeHtml(str) {
   return String(str ?? "")
@@ -74,8 +75,13 @@ export async function render(pageEl, { api, showAlert, route }) {
             })
             .join("");
 
+    const wellnessBanner = getWithoutGeneticTestFlag()
+      ? `<div class="alert alert-info border-0 bg-info bg-opacity-10 small mb-3">Режим «без генетического теста»: паспорт доступен по прямой ссылке. Настройка — в <a href="#/profile">профиле</a>.</div>`
+      : "";
+
     pageEl.innerHTML = `
       <div class="app-page">
+      ${wellnessBanner}
       <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
         <h3 class="mb-0">Генетический паспорт</h3>
         <a class="btn btn-outline-secondary btn-sm" href="#/dashboard">На дашборд</a>

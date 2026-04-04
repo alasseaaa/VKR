@@ -14,6 +14,11 @@ class UserProfile(models.Model):
     )
     diet_preferences = models.TextField(blank=True, verbose_name="Пищевые предпочтения")
     goals_text = models.TextField(blank=True, verbose_name="Цели")
+    without_genetic_test = models.BooleanField(
+        default=False,
+        verbose_name="Режим без генетического теста",
+        help_text="Акцент на статьях и привычках; разделы с генотипами скрыты в меню.",
+    )
     birth_date = models.DateField(null=True, blank=True, verbose_name="Дата рождения")
     gender = models.CharField(
         max_length=16,
@@ -155,6 +160,7 @@ class Article(models.Model):
             ('sport', 'Спорт'),
             ('vitamins', 'Витамины'),
             ('nutrition', 'Питание'),
+            ('wellness', 'Общее здоровье (без теста)'),
         ],
         blank=True,
         verbose_name="Категория"

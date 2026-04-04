@@ -11,6 +11,9 @@ const ACTIVITY_OPTS = [
   { v: "high", t: "Высокий" },
 ];
 
+import { renderSidebar } from "../components/sidebar.js";
+import { setWithoutGeneticTestFlag } from "../services/wellness.js";
+
 function escapeHtml(str) {
   return String(str ?? "")
     .replaceAll("&", "&amp;")
@@ -97,6 +100,13 @@ export async function render(pageEl, { api, showAlert }) {
             <textarea name="goals_text" class="form-control" rows="2">${escapeHtml(data.goals_text || "")}</textarea>
           </div>
           <div class="col-12">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="prof-wg" ${data.without_genetic_test ? "checked" : ""} />
+              <label class="form-check-label" for="prof-wg">Режим без генетического теста</label>
+            </div>
+            <div class="text-muted small mt-1">Упрощённое меню без разделов «Генетические данные» и «Генетический паспорт»; на странице статей по умолчанию открывается категория «Общее здоровье». Генотипы можно добавить позже — снимите галочку.</div>
+          </div>
+          <div class="col-12">
             <button type="submit" class="btn btn-primary">Сохранить</button>
           </div>
         </form>
@@ -107,7 +117,8 @@ export async function render(pageEl, { api, showAlert }) {
 
   pageEl.querySelector("#profile-form").addEventListener("submit", async (e) => {
     e.preventDefault();
-    const fd = new FormData(e.target);
+    const form = e.target;
+    const fd = new FormData(form);
     const payload = {};
     for (const [k, v] of fd.entries()) {
       if (k === "height" || k === "weight") {
@@ -119,8 +130,11 @@ export async function render(pageEl, { api, showAlert }) {
         payload[k] = v;
       }
     }
+    payload.without_genetic_test = Boolean(form.querySelector("#prof-wg")?.checked);
     try {
-      await api.patient.updateProfile(payload);
+      const updated = await api.patient.updateProfile(payload);
+      setWithoutGeneticTestFlag(Boolean(updated?.without_genetic_test));
+      renderSidebar();
       showAlert("success", "Профиль сохранён");
     } catch (err) {
       showAlert("danger", err.message);

@@ -231,6 +231,7 @@ class PatientOwnProfileAPIView(APIView):
             "activity_level",
             "diet_preferences",
             "goals_text",
+            "without_genetic_test",
         ):
             if field in data:
                 setattr(profile, field, data[field])

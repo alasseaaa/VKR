@@ -14,6 +14,7 @@ class RegisterSerializer(serializers.Serializer):
     last_name = serializers.CharField(max_length=30)
     password1 = serializers.CharField(write_only=True)
     password2 = serializers.CharField(write_only=True)
+    without_genetic_test = serializers.BooleanField(required=False, default=False)
 
     def validate(self, attrs):
         if attrs.get("password1") != attrs.get("password2"):
@@ -21,13 +22,16 @@ class RegisterSerializer(serializers.Serializer):
         return attrs
 
     def create(self, validated_data):
+        data = {**validated_data}
+        without_genetic_test = bool(data.pop("without_genetic_test", False))
         user = register_user(
-            username=validated_data["username"],
-            email=validated_data["email"],
-            first_name=validated_data["first_name"],
-            last_name=validated_data["last_name"],
-            password1=validated_data["password1"],
-            password2=validated_data["password2"],
+            username=data["username"],
+            email=data["email"],
+            first_name=data["first_name"],
+            last_name=data["last_name"],
+            password1=data["password1"],
+            password2=data["password2"],
+            without_genetic_test=without_genetic_test,
         )
         return user
 
@@ -48,6 +52,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "activity_level",
             "diet_preferences",
             "goals_text",
+            "without_genetic_test",
             "updated_at",
         ]
         read_only_fields = ["updated_at"]
@@ -63,6 +68,7 @@ class PatientOwnProfileUpdateSerializer(serializers.Serializer):
     activity_level = serializers.CharField(required=False, allow_blank=True, allow_null=True, max_length=16)
     diet_preferences = serializers.CharField(required=False, allow_blank=True)
     goals_text = serializers.CharField(required=False, allow_blank=True)
+    without_genetic_test = serializers.BooleanField(required=False)
 
     def validate_gender(self, value):
         if value in (None, ""):

@@ -7,6 +7,7 @@ import {
   startPatientNotificationPolling,
   stopPatientNotificationPolling,
 } from "./services/patientNotifications.js";
+import { syncPatientWellnessFromProfile } from "./services/wellness.js";
 
 async function renderPage(route) {
   const pageEl = document.getElementById("page");
@@ -77,6 +78,17 @@ async function renderPage(route) {
 
 async function renderApp() {
   clearAlert();
+  const authed = isAuthed();
+  const role = getAuth().role;
+  if (!authed || role !== "patient") {
+    localStorage.removeItem("patient_without_genetic_test");
+  } else {
+    try {
+      await syncPatientWellnessFromProfile(api);
+    } catch {
+      /* офлайн / ошибка профиля */
+    }
+  }
   renderSidebar();
   const route = parseRoute();
   try {

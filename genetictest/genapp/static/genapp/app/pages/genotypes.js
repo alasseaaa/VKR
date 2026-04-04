@@ -1,3 +1,5 @@
+import { getWithoutGeneticTestFlag } from "../services/wellness.js";
+
 const PENDING_STORAGE_KEY = "genapp_genotypes_pending";
 
 function escapeHtml(str) {
@@ -153,8 +155,13 @@ export async function render(pageEl, { api, showAlert }) {
           .join("")
       : `<tr><td colspan="3" class="text-center text-muted py-3">Добавьте варианты кнопкой «В список»</td></tr>`;
 
+  const wellnessBanner = getWithoutGeneticTestFlag()
+    ? `<div class="alert alert-info border-0 bg-info bg-opacity-10 small mb-3">У вас включён режим «без генетического теста». Раздел доступен по прямой ссылке; чтобы скрыть его в меню снова, снимите галочку в <a href="#/profile">профиле</a>.</div>`
+    : "";
+
   pageEl.innerHTML = `
     <div class="app-page">
+    ${wellnessBanner}
     <div class="app-page-header d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
       <h1 class="app-page-title h3 mb-0">Генетические данные</h1>
       <a class="btn btn-outline-secondary btn-sm" href="#/passport">Открыть паспорт</a>

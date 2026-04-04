@@ -48,6 +48,13 @@ export async function render(pageEl, { api, showAlert }) {
             <input name="password2" type="password" class="form-control" required />
           </div>
         </div>
+        <div class="mb-3">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="reg-without-gt" />
+            <label class="form-check-label" for="reg-without-gt">Пока не планирую добавлять результаты генетического теста</label>
+          </div>
+          <div class="text-muted small mt-1">Включим упрощённый интерфейс и подборку статей «Общее здоровье». Позже это можно изменить в профиле.</div>
+        </div>
         <div class="d-grid gap-2">
           <button class="btn btn-primary" type="submit">Создать аккаунт</button>
           <a class="btn btn-outline-secondary" href="#/login">Назад</a>
@@ -61,6 +68,7 @@ export async function render(pageEl, { api, showAlert }) {
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const payload = Object.fromEntries(new FormData(form).entries());
+    payload.without_genetic_test = Boolean(document.getElementById("reg-without-gt")?.checked);
     try {
       await api.auth.register(payload);
       window.location.hash = "#/login";

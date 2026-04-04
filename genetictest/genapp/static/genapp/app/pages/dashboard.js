@@ -1,3 +1,4 @@
+import { mountWeeklyFocus } from "../components/weeklyFocus.js";
 import { requestBrowserNotificationPermission } from "../services/patientNotifications.js";
 
 function escapeHtml(str) {
@@ -73,10 +74,12 @@ export async function render(pageEl, { api, auth, showAlert }) {
 
   let profileHint = "";
   let patientDisplay = auth.username || "";
+  let patientProfile = null;
 
   if (auth.role === "patient" || auth.role === "admin") {
     try {
-      const p = await api.patient.getProfile();
+      patientProfile = await api.patient.getProfile();
+      const p = patientProfile;
       const full = [p.first_name, p.last_name].filter(Boolean).join(" ").trim();
       patientDisplay = full || p.username || auth.username || "";
       const miss = [];
@@ -93,6 +96,20 @@ export async function render(pageEl, { api, auth, showAlert }) {
       profileHint = "";
     }
   }
+
+  const wellnessMode = auth.role === "patient" && Boolean(patientProfile?.without_genetic_test);
+  const wellnessBanner = wellnessMode
+    ? `<div class="alert alert-success border-0 bg-success bg-opacity-10 mb-3 small">
+        <div class="fw-semibold mb-1">Режим без генетического теста</div>
+        <p class="mb-2">Интерфейс упрощён: в меню скрыты разделы с генотипами и паспортом. Персональные рекомендации по ДНК появятся после добавления генотипов — это можно сделать в любой момент, сняв галочку в <a href="#/profile">профиле</a>.</p>
+        <p class="mb-0">Материалы без теста: раздел <a href="#/articles">Статьи</a> (категория «Общее здоровье»), анализы витаминов и привычки ниже.</p>
+      </div>`
+    : "";
+
+  const weeklyFocusBlock =
+    auth.role === "patient"
+      ? `<div id="weekly-focus-root" class="mb-0"></div>`
+      : "";
 
   let notifBanner = "";
   if (
@@ -120,6 +137,8 @@ export async function render(pageEl, { api, auth, showAlert }) {
     <div class="app-page">
     ${notifBanner}
     ${pdfToolbar}
+    ${wellnessBanner}
+    ${weeklyFocusBlock}
     <div class="d-flex flex-wrap align-items-start justify-content-between gap-2 mb-3">
       <div>
         <h3 class="mb-1">Дашборд</h3>
@@ -136,11 +155,23 @@ export async function render(pageEl, { api, auth, showAlert }) {
     <div class="card shadow-sm mb-3">
       <div class="card-header bg-white fw-semibold">Сводка и подсказки</div>
       <div class="card-body">
-        ${profileHint || `<p class="text-muted small mb-2">Заполните генотипы и анализы — тогда на паспорте и в рекомендациях появится больше контекста.</p>`}
+        ${
+          wellnessMode
+            ? `${profileHint && profileHint.includes("alert") ? `${profileHint}<div class="mt-2"></div>` : ""}
+               <p class="text-muted small mb-2">Добавляйте <a href="#/vitamin-tests">анализы витаминов</a> — так удобнее вести динамику. Раздел <a href="#/recommendations">Рекомендации</a> наполнится персональными пунктами, когда появятся генотипы.</p>`
+            : profileHint ||
+              `<p class="text-muted small mb-2">Заполните генотипы и анализы — тогда на паспорте и в рекомендациях появится больше контекста.</p>`
+        }
         <ul class="small text-muted mb-0 ps-3">
-          <li class="mb-1">Новые варианты генов удобно добавлять списком и сразу переходить в паспорт.</li>
-          <li class="mb-1">Статусы витаминов считаются относительно справочных диапазонов в системе.</li>
-          <li>Рекомендации группируются по смысловым категориям — на странице «Рекомендации» есть поиск и фильтр по категории.</li>
+          ${
+            wellnessMode
+              ? `<li class="mb-1">Статьи категории «Общее здоровье» подходят без генетического теста.</li>
+                 <li class="mb-1">Комментарии врача и история консультаций доступны, если вы прикреплены к лечащему врачу.</li>
+                 <li>Чтобы работать с ДНК-данными, отключите режим в профиле — появятся «Генетические данные» и паспорт.</li>`
+              : `<li class="mb-1">Новые варианты генов удобно добавлять списком и сразу переходить в паспорт.</li>
+                 <li class="mb-1">Статусы витаминов считаются относительно справочных диапазонов в системе.</li>
+                 <li>Рекомендации группируются по смысловым категориям — на странице «Рекомендации» есть поиск и фильтр по категории.</li>`
+          }
         </ul>
       </div>
     </div>
@@ -182,6 +213,9 @@ export async function render(pageEl, { api, auth, showAlert }) {
     </div>
     </div>
   `;
+
+  const wfRoot = pageEl.querySelector("#weekly-focus-root");
+  if (wfRoot) mountWeeklyFocus(wfRoot);
 
   const btnPush = pageEl.querySelector("#btn-enable-push");
   if (btnPush) {
