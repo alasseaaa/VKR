@@ -1,3 +1,5 @@
+import { requestBrowserNotificationPermission } from "../services/patientNotifications.js";
+
 function escapeHtml(str) {
   return String(str ?? "")
     .replaceAll("&", "&amp;")
@@ -92,8 +94,22 @@ export async function render(pageEl, { api, auth, showAlert }) {
     }
   }
 
+  let notifBanner = "";
+  if (
+    auth.role === "patient" &&
+    typeof Notification !== "undefined" &&
+    Notification.permission === "default"
+  ) {
+    notifBanner = `
+    <div class="alert alert-primary d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+      <span class="small mb-0">Чтобы получать <strong>push-уведомления</strong> о новых комментариях врача, разрешите уведомления в браузере.</span>
+      <button type="button" class="btn btn-sm btn-light" id="btn-enable-push">Разрешить уведомления</button>
+    </div>`;
+  }
+
   pageEl.innerHTML = `
     <div class="app-page">
+    ${notifBanner}
     <div class="d-flex flex-wrap align-items-start justify-content-between gap-2 mb-3">
       <div>
         <h3 class="mb-1">Дашборд</h3>
@@ -156,4 +172,13 @@ export async function render(pageEl, { api, auth, showAlert }) {
     </div>
     </div>
   `;
+
+  const btnPush = pageEl.querySelector("#btn-enable-push");
+  if (btnPush) {
+    btnPush.addEventListener("click", async () => {
+      const r = await requestBrowserNotificationPermission();
+      if (r === "granted") showAlert("success", "Уведомления включены.");
+      btnPush.closest(".alert")?.remove();
+    });
+  }
 }

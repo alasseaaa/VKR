@@ -3,6 +3,10 @@ import { showAlert, clearAlert } from "./components/alerts.js";
 import { renderSidebar } from "./components/sidebar.js";
 import { getAuth, isAuthed } from "./services/auth.js";
 import { api } from "./services/api.js";
+import {
+  startPatientNotificationPolling,
+  stopPatientNotificationPolling,
+} from "./services/patientNotifications.js";
 
 async function renderPage(route) {
   const pageEl = document.getElementById("page");
@@ -79,6 +83,13 @@ async function renderApp() {
     await renderPage(route);
   } catch (e) {
     showAlert("danger", e?.message || "Ошибка");
+  }
+
+  const a = getAuth();
+  if (isAuthed() && a.role === "patient") {
+    startPatientNotificationPolling(api);
+  } else {
+    stopPatientNotificationPolling();
   }
 }
 

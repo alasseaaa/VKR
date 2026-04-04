@@ -50,6 +50,12 @@ class IsPatientOrAdmin(RolePermission):
     required_roles = {"patient", "admin"}
 
 
+class IsPatientRole(RolePermission):
+    """Только пациент (не врач и не staff-админ)."""
+
+    required_roles = {"patient"}
+
+
 class IsDoctor(RolePermission):
     required_roles = {"doctor"}
 

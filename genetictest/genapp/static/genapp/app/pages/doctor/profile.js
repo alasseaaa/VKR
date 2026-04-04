@@ -35,6 +35,7 @@ export async function render(pageEl, { api, route, showAlert }) {
   }
 
   const genotypes = profile?.genotypes || [];
+  const vitaminTests = profile?.vitamin_tests || [];
 
   let comments = [];
 
@@ -244,7 +245,7 @@ export async function render(pageEl, { api, route, showAlert }) {
         </div>
 
         <div class="card shadow-sm">
-          <div class="card-header bg-white fw-semibold">Комментарии врача (локально)</div>
+          <div class="card-header bg-white fw-semibold">Комментарии врача</div>
           <div class="card-body" id="comments-list"></div>
         </div>
       </div>
@@ -282,7 +283,7 @@ export async function render(pageEl, { api, route, showAlert }) {
     </div>
   `;
 
-  renderComments();
+  await reloadComments();
 
   const scopeSelect = pageEl.querySelector('select[name="scope"]');
   const genotypeBlock = pageEl.querySelector("#scope-genotype");
@@ -312,9 +313,8 @@ export async function render(pageEl, { api, route, showAlert }) {
         payload.vitamin_test = Number(form.get("vitamin_test"));
       }
 
-      const created = await api.doctor.createComment(patientId, payload);
-      comments = [created, ...comments];
-      renderComments();
+      await api.doctor.createComment(patientId, payload);
+      await reloadComments();
       showAlert("success", "Комментарий сохранён");
       commentForm.reset();
       syncScopeBlocks();
@@ -329,9 +329,8 @@ export async function render(pageEl, { api, route, showAlert }) {
     try {
       const form = new FormData(conclusionForm);
       const text = form.get("text");
-      const created = await api.doctor.createConclusion(patientId, { text });
-      comments = [created, ...comments];
-      renderComments();
+      await api.doctor.createConclusion(patientId, { text });
+      await reloadComments();
       showAlert("success", "Заключение опубликовано");
       conclusionForm.reset();
     } catch (err) {
@@ -368,10 +367,9 @@ export async function render(pageEl, { api, route, showAlert }) {
         text: form.get("text"),
         status: form.get("status"),
       };
-      const updated = await api.doctor.updateComment(commentId, payload);
-      comments = comments.map((c) => (Number(c.id) === commentId ? updated : c));
+      await api.doctor.updateComment(commentId, payload);
       editModal.hide();
-      renderComments();
+      await reloadComments();
       showAlert("success", "Комментарий обновлён");
     } catch (err) {
       showAlert("danger", err.message);

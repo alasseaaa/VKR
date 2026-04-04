@@ -7,7 +7,8 @@ from rest_framework.viewsets import ReadOnlyModelViewSet
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from genapp.api.permissions import IsAdminOnly, IsDoctor, IsPatientOrAdmin, get_user_role
+from genapp.api.patient_notifications import PatientNotificationSerializer
+from genapp.api.permissions import IsAdminOnly, IsDoctor, IsPatientOrAdmin, IsPatientRole, get_user_role
 from genapp.doctor.services import check_doctor_access
 from genapp.api.article_serializers import ArticleSerializer
 from genapp.models import (
@@ -15,6 +16,7 @@ from genapp.models import (
     DoctorComment,
     DoctorCommentHistory,
     DoctorPatient,
+    PatientNotification,
     Gene,
     GeneVariant,
     Recommendation,
@@ -440,4 +442,38 @@ class DoctorCommentUpdateAPIView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class PatientNotificationsUnreadAPIView(APIView):
+    permission_classes = [IsPatientRole]
+
+    def get(self, request):
+        unread_qs = PatientNotification.objects.filter(user=request.user, is_read=False).order_by("-created_at")
+        unread_count = unread_qs.count()
+        items = unread_qs[:50]
+        return Response(
+            {
+                "unread_count": unread_count,
+                "items": PatientNotificationSerializer(items, many=True).data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class PatientNotificationsMarkReadAPIView(APIView):
+    permission_classes = [IsPatientRole]
+
+    def post(self, request):
+        ids = request.data.get("ids")
+        if not isinstance(ids, list) or not ids:
+            return Response(
+                {"detail": "Укажите ids — непустой список идентификаторов."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            id_list = [int(x) for x in ids]
+        except (TypeError, ValueError):
+            return Response({"detail": "Некорректный формат ids."}, status=status.HTTP_400_BAD_REQUEST)
+        PatientNotification.objects.filter(user=request.user, pk__in=id_list).update(is_read=True)
+        return Response({"ok": True}, status=status.HTTP_200_OK)
 

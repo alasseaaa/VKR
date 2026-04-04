@@ -76,6 +76,10 @@ export const api = {
     getInterpretation: () => request("get", "/api/patient/interpretation/"),
     getRecommendations: () => request("get", "/api/patient/recommendations/"),
 
+    getUnreadNotifications: () => request("get", "/api/patient/notifications/unread/"),
+    markNotificationsRead: (ids) =>
+      request("post", "/api/patient/notifications/mark-read/", { data: { ids } }),
+
     listVitaminCatalog: () => request("get", "/api/patient/vitamins/catalog/"),
     listGeneCatalog: () => request("get", "/api/patient/genes/catalog/"),
     listGeneVariantCatalog: (params) =>

@@ -9,7 +9,9 @@ export function showAlert(type, message) {
         ? "alert-warning"
         : type === "danger"
           ? "alert-danger"
-          : "alert-secondary";
+          : type === "info"
+            ? "alert-info"
+            : "alert-secondary";
 
   area.innerHTML = `
     <div class="alert ${color} alert-dismissible fade show" role="alert">

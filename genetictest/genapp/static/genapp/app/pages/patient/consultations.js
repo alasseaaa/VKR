@@ -40,6 +40,14 @@ function commentBodyHtml(c) {
 export async function render(pageEl, { api, showAlert }) {
   pageEl.innerHTML = `<div class="card app-card"><div class="card-body">Загрузка истории…</div></div>`;
 
+  try {
+    const u = await api.patient.getUnreadNotifications();
+    const ids = (u?.items || []).map((x) => Number(x.id)).filter((x) => Number.isFinite(x));
+    if (ids.length) await api.patient.markNotificationsRead(ids);
+  } catch {
+    /* нет прав или сеть */
+  }
+
   let items = [];
   try {
     const data = await api.comments.list({});

@@ -5,7 +5,8 @@ from django.contrib.auth.models import User
 from .models import (
     UserProfile, Gene, GeneVariant, Recommendation,
     GeneVariantRecommendation, UserGenotype, UserRecommendation,
-    Article, Vitamin, GeneVitamin, VitaminGenotypeEffect, Vitamin, VitaminTestResult, DoctorComment, DoctorPatient, DoctorCommentHistory
+    Article, Vitamin, GeneVitamin, VitaminGenotypeEffect, Vitamin, VitaminTestResult, DoctorComment, DoctorPatient, DoctorCommentHistory,
+    PatientNotification,
 )
 
 
@@ -44,3 +45,4 @@ class VitaminTestResultAdmin(admin.ModelAdmin):
 admin.site.register(DoctorPatient)
 admin.site.register(DoctorComment)
 admin.site.register(DoctorCommentHistory)
+admin.site.register(PatientNotification)

@@ -357,3 +357,34 @@ class DoctorCommentHistory(models.Model):
 
     def __str__(self):
         return f'History for comment #{self.comment_id} by {self.edited_by.username}'
+
+
+class PatientNotification(models.Model):
+    """Push/in-app уведомление пациента (например, опубликованный комментарий врача)."""
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="patient_notifications",
+        verbose_name="Пациент",
+    )
+    comment = models.ForeignKey(
+        DoctorComment,
+        on_delete=models.CASCADE,
+        related_name="patient_notifications",
+        null=True,
+        blank=True,
+        verbose_name="Комментарий",
+    )
+    title = models.CharField(max_length=200, verbose_name="Заголовок")
+    body = models.TextField(blank=True, verbose_name="Текст")
+    is_read = models.BooleanField(default=False, verbose_name="Прочитано")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Создано")
+
+    class Meta:
+        verbose_name = "Уведомление пациента"
+        verbose_name_plural = "Уведомления пациентов"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.user.username}: {self.title[:50]}"
