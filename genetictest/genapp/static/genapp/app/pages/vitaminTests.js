@@ -14,6 +14,8 @@ function escapeHtml(str) {
     .replaceAll("'", "&#039;");
 }
 
+import { doctorCommentsForMarkerHtml } from "../components/doctorComment.js";
+
 function vitaminOptionsHtml(vitamins) {
   if (!vitamins?.length) {
     return '<option value="">Нет витаминов в справочнике</option>';
@@ -29,7 +31,7 @@ function vitaminOptionsHtml(vitamins) {
   );
 }
 
-export async function render(pageEl, { api, showAlert }) {
+export async function render(pageEl, { api, showAlert, route } = {}) {
   if (pageEl._vitaminClickHandler) {
     pageEl.removeEventListener("click", pageEl._vitaminClickHandler);
     pageEl._vitaminClickHandler = null;
@@ -53,9 +55,26 @@ export async function render(pageEl, { api, showAlert }) {
   };
 
   let tests = await load();
+  let allComments = [];
+  try {
+    const data = await api.comments.list({});
+    allComments = Array.isArray(data) ? data : [];
+  } catch {
+    allComments = [];
+  }
+
+  const byTest = new Map();
+  for (const c of allComments) {
+    const tid = c.vitamin_reading_id;
+    if (tid == null) continue;
+    const k = Number(tid);
+    if (!byTest.has(k)) byTest.set(k, []);
+    byTest.get(k).push(c);
+  }
+
   const refresh = async () => {
     tests = await load();
-    await render(pageEl, { api, showAlert });
+    await render(pageEl, { api, showAlert, route });
   };
 
   pageEl.innerHTML = `
@@ -112,9 +131,14 @@ export async function render(pageEl, { api, showAlert }) {
             ${
               tests.length
                 ? tests
-                    .map(
-                      (t) => `
-                <tr>
+                    .map((t) => {
+                      const markerComments = byTest.get(Number(t.id)) || [];
+                      const docHtml = doctorCommentsForMarkerHtml(
+                        markerComments,
+                        "Комментарий врача к анализу",
+                      );
+                      return `
+                <tr id="vitamin-test-${t.id}">
                   <td>
                     <div class="fw-semibold">${t.vitamin_name || ""}</div>
                     <div class="text-muted small">${t.vitamin_unit_test || ""}</div>
@@ -131,8 +155,13 @@ export async function render(pageEl, { api, showAlert }) {
                     </button>
                   </td>
                 </tr>
-              `,
-                    )
+                ${
+                  docHtml
+                    ? `<tr class="border-0"><td colspan="5" class="bg-transparent pt-0 pb-3 border-0">${docHtml}</td></tr>`
+                    : ""
+                }
+              `;
+                    })
                     .join("")
                 : `<tr><td colspan="5" class="text-center text-muted py-4">Пока нет анализов</td></tr>`
             }
@@ -255,4 +284,11 @@ export async function render(pageEl, { api, showAlert }) {
       showAlert("danger", err.message);
     }
   });
+
+  const fid = route?.focusTestId;
+  if (fid != null) {
+    requestAnimationFrame(() => {
+      document.getElementById(`vitamin-test-${fid}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
 }

@@ -1,8 +1,8 @@
 from django.contrib.auth import get_user_model
-from django.db.models import Q
+from django.db.models import Exists, OuterRef, Q
 from django.shortcuts import get_object_or_404
 from rest_framework import status, viewsets
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.viewsets import ReadOnlyModelViewSet
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -13,6 +13,7 @@ from genapp.api.article_serializers import ArticleSerializer
 from genapp.models import (
     Article,
     DoctorComment,
+    DoctorCommentHistory,
     DoctorPatient,
     Gene,
     GeneVariant,
@@ -28,7 +29,7 @@ from genapp.genetics.serializers import (
 )
 from genapp.recommendations.serializers import RecommendationSerializer
 from genapp.recommendations.services import get_interpretation, get_user_recommendations
-from genapp.doctor.serializers import DoctorCommentSerializer
+from genapp.doctor.serializers import DoctorCommentSerializer, PatientDoctorCommentReadSerializer
 from genapp.users.serializers import (
     LoginSerializer,
     PatientOwnProfileUpdateSerializer,
@@ -165,6 +166,7 @@ class PatientOwnProfileAPIView(APIView):
         user = request.user
         profile, _ = UserProfile.objects.get_or_create(user=user)
         payload = {
+            "id": user.id,
             "username": user.username,
             "email": user.email,
             "first_name": user.first_name or "",
@@ -266,6 +268,101 @@ class DoctorPatientProfileAPIView(APIView):
             "vitamin_tests": VitaminTestResultSerializer(vitamin_tests, many=True).data,
         }
         return Response(payload, status=status.HTTP_200_OK)
+
+
+def _parse_optional_int(param):
+    if param is None or param == "":
+        return None
+    try:
+        return int(param)
+    except (TypeError, ValueError):
+        return None
+
+
+class DoctorCommentListAPIView(APIView):
+    """
+    GET /api/v1/comments/
+    Пациент — только свои опубликованные комментарии (кроме удалённых).
+    Врач — комментарии закреплённого пациента (черновик + опубликован), без удалённых.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        role = get_user_role(request.user)
+        if role not in ("patient", "doctor"):
+            return Response({"detail": "Недостаточно прав."}, status=status.HTTP_403_FORBIDDEN)
+
+        patient_id_raw = request.query_params.get("patient_id")
+        genetic_result_id = _parse_optional_int(request.query_params.get("genetic_result_id"))
+        vitamin_reading_id = _parse_optional_int(request.query_params.get("vitamin_reading_id"))
+
+        if genetic_result_id is not None and vitamin_reading_id is not None:
+            return Response(
+                {"detail": "Укажите только один из параметров: genetic_result_id или vitamin_reading_id."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        target_patient_id = None
+
+        if role == "patient":
+            target_patient_id = request.user.id
+            if patient_id_raw is not None:
+                pid = _parse_optional_int(patient_id_raw)
+                if pid is not None and pid != request.user.id:
+                    return Response({"detail": "Нет доступа."}, status=status.HTTP_403_FORBIDDEN)
+
+            if genetic_result_id is not None:
+                if not UserGenotype.objects.filter(id=genetic_result_id, user_id=request.user.id).exists():
+                    return Response({"detail": "Маркер не найден."}, status=status.HTTP_404_NOT_FOUND)
+
+            if vitamin_reading_id is not None:
+                if not VitaminTestResult.objects.filter(id=vitamin_reading_id, user_id=request.user.id).exists():
+                    return Response({"detail": "Анализ не найден."}, status=status.HTTP_404_NOT_FOUND)
+
+        else:  # doctor
+            if genetic_result_id is not None:
+                ug = UserGenotype.objects.filter(id=genetic_result_id).select_related("gene_variant__gene").first()
+                if ug is None:
+                    return Response({"detail": "Маркер не найден."}, status=status.HTTP_404_NOT_FOUND)
+                target_patient_id = ug.user_id
+                if not check_doctor_access(request.user.id, target_patient_id):
+                    return Response({"detail": "Нет доступа к этому пациенту."}, status=status.HTTP_403_FORBIDDEN)
+            elif vitamin_reading_id is not None:
+                vt = VitaminTestResult.objects.filter(id=vitamin_reading_id).first()
+                if vt is None:
+                    return Response({"detail": "Анализ не найден."}, status=status.HTTP_404_NOT_FOUND)
+                target_patient_id = vt.user_id
+                if not check_doctor_access(request.user.id, target_patient_id):
+                    return Response({"detail": "Нет доступа к этому пациенту."}, status=status.HTTP_403_FORBIDDEN)
+            else:
+                pid = _parse_optional_int(patient_id_raw)
+                if pid is None:
+                    return Response({"detail": "Укажите patient_id."}, status=status.HTTP_400_BAD_REQUEST)
+                if not check_doctor_access(request.user.id, pid):
+                    return Response({"detail": "Нет доступа к этому пациенту."}, status=status.HTTP_403_FORBIDDEN)
+                target_patient_id = pid
+
+        history_exists = DoctorCommentHistory.objects.filter(comment_id=OuterRef("pk"))
+        qs = (
+            DoctorComment.objects.filter(patient_id=target_patient_id)
+            .select_related("doctor", "genotype__gene_variant__gene", "vitamin_test__vitamin")
+            .annotate(_was_edited=Exists(history_exists))
+        )
+
+        if role == "patient":
+            qs = qs.filter(status="published")
+        else:
+            qs = qs.exclude(status="deleted")
+
+        if genetic_result_id is not None:
+            qs = qs.filter(genotype_id=genetic_result_id)
+        if vitamin_reading_id is not None:
+            qs = qs.filter(vitamin_test_id=vitamin_reading_id)
+
+        qs = qs.order_by("-created_at")
+        data = PatientDoctorCommentReadSerializer(qs, many=True).data
+        return Response(data, status=status.HTTP_200_OK)
 
 
 class DoctorCommentCreateAPIView(APIView):

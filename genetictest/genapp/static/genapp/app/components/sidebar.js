@@ -42,6 +42,7 @@ export function renderSidebar() {
     items.push({ href: "/vitamin-tests", label: "Анализы витаминов", icon: "bi-droplet" });
     items.push({ href: "/recommendations", label: "Рекомендации", icon: "bi-stars" });
     items.push({ href: "/passport", label: "Генетический паспорт", icon: "bi-person-badge" });
+    items.push({ href: "/patient/consultations", label: "История консультаций", icon: "bi-chat-square-text" });
   } else if (role === "doctor") {
     items.push({ href: "/doctor/patients", label: "Пациенты", icon: "bi-people" });
   } else if (role === "admin") {

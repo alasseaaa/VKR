@@ -2,13 +2,16 @@ const KEYS = {
   basicToken: "auth_basic_token",
   username: "auth_username",
   role: "auth_role",
+  userId: "auth_user_id",
 };
 
 export function getAuth() {
   const basicToken = localStorage.getItem(KEYS.basicToken);
   const username = localStorage.getItem(KEYS.username);
   const role = localStorage.getItem(KEYS.role);
-  return { basicToken, username, role };
+  const userIdRaw = localStorage.getItem(KEYS.userId);
+  const userId = userIdRaw ? Number(userIdRaw) : null;
+  return { basicToken, username, role, userId: Number.isFinite(userId) ? userId : null };
 }
 
 export function isAuthed() {
@@ -23,11 +26,14 @@ export function isAuthed() {
  * Безопасность: это хранит пароль в base64 в localStorage (демо-режим).
  * В боевом варианте лучше JWT/DRF Token.
  */
-export function setBasicAuth({ username, password, role }) {
+export function setBasicAuth({ username, password, role, userId }) {
   const basicToken = btoa(`${username}:${password}`);
   localStorage.setItem(KEYS.basicToken, basicToken);
   localStorage.setItem(KEYS.username, username);
   if (role) localStorage.setItem(KEYS.role, role);
+  if (userId != null && userId !== "") {
+    localStorage.setItem(KEYS.userId, String(userId));
+  }
 }
 
 export function clearAuth() {

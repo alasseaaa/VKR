@@ -11,6 +11,7 @@ from genapp.api.views import (
     AdminGeneViewSet,
     AdminRecommendationViewSet,
     PublicArticleViewSet,
+    DoctorCommentListAPIView,
     DoctorCommentCreateAPIView,
     DoctorCommentUpdateAPIView,
     DoctorConclusionCreateAPIView,
@@ -35,6 +36,7 @@ router.register(r"admin/recommendations", AdminRecommendationViewSet, basename="
 router.register(r"articles", PublicArticleViewSet, basename="public-articles")
 
 urlpatterns = [
+    path("v1/comments/", DoctorCommentListAPIView.as_view()),
     path("auth/register/", RegisterAPIView.as_view()),
     path("auth/login/", LoginAPIView.as_view()),
 

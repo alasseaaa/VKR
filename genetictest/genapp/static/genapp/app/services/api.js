@@ -39,6 +39,10 @@ export async function request(method, url, { data, params } = {}) {
 }
 
 export const api = {
+  /** Комментарии врача (чтение): GET /api/v1/comments/ */
+  comments: {
+    list: (params) => request("get", "/api/v1/comments/", { params: params || {} }),
+  },
   /** Публичные эндпоинты (без обязательной авторизации) */
   public: {
     listArticles: (params) => request("get", "/api/articles/", { params: params || {} }),

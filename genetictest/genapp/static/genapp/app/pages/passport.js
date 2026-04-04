@@ -1,3 +1,5 @@
+import { doctorCommentsForMarkerHtml } from "../components/doctorComment.js";
+
 function escapeHtml(str) {
   return String(str ?? "")
     .replaceAll("&", "&amp;")
@@ -22,12 +24,25 @@ function textBlock(title, text) {
     </div>`;
 }
 
-export async function render(pageEl, { api, showAlert }) {
+export async function render(pageEl, { api, showAlert, route }) {
   pageEl.innerHTML = `<div class="card"><div class="card-body">Формирование паспорта...</div></div>`;
 
   try {
-    const genotypes = await api.patient.listGenotypes();
+    const [genotypes, allCommentsRaw] = await Promise.all([
+      api.patient.listGenotypes(),
+      api.comments.list({}).catch(() => []),
+    ]);
     const list = Array.isArray(genotypes) ? genotypes : [];
+    const allComments = Array.isArray(allCommentsRaw) ? allCommentsRaw : [];
+
+    const byGenotype = new Map();
+    for (const c of allComments) {
+      const gid = c.genetic_result_id;
+      if (gid == null) continue;
+      const k = Number(gid);
+      if (!byGenotype.has(k)) byGenotype.set(k, []);
+      byGenotype.get(k).push(c);
+    }
 
     const cards =
       list.length === 0
@@ -36,8 +51,13 @@ export async function render(pageEl, { api, showAlert }) {
             .map((g) => {
               const head = `${escapeHtml(g.gene_symbol || "")}${g.gene_full_name ? ` — ${escapeHtml(g.gene_full_name)}` : ""}`;
               const varLine = `${escapeHtml(g.variant_genotype || "—")} · риск: ${escapeHtml(riskLabel(g.risk_type))}`;
+              const markerComments = byGenotype.get(Number(g.id)) || [];
+              const doctorBlocks = doctorCommentsForMarkerHtml(
+                markerComments,
+                "Комментарий лечащего врача",
+              );
               return `
-          <div class="card app-card shadow-sm mb-3">
+          <div class="card app-card shadow-sm mb-3" id="passport-genotype-${g.id}">
             <div class="card-body">
               <div class="d-flex flex-wrap justify-content-between gap-2 mb-3">
                 <div>
@@ -48,6 +68,7 @@ export async function render(pageEl, { api, showAlert }) {
               ${textBlock("Описание гена", g.gene_description)}
               ${textBlock("Эффект / значение гена", g.gene_effect_description)}
               ${textBlock("Описание варианта", g.variant_description)}
+              ${doctorBlocks}
             </div>
           </div>`;
             })
@@ -63,6 +84,13 @@ export async function render(pageEl, { api, showAlert }) {
       ${cards}
       </div>
     `;
+
+    const focusId = route?.focusGenotypeId;
+    if (focusId != null) {
+      requestAnimationFrame(() => {
+        document.getElementById(`passport-genotype-${focusId}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    }
   } catch (err) {
     showAlert("danger", err.message);
     pageEl.innerHTML = `<div class="alert alert-danger">${escapeHtml(err.message)}</div>`;

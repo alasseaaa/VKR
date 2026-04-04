@@ -23,9 +23,22 @@ export function parseRoute() {
 
   if (parts[0] === "dashboard") return { name: "dashboard" };
   if (parts[0] === "genotypes") return { name: "genotypes" };
-  if (parts[0] === "vitamin-tests") return { name: "vitamin-tests" };
+  if (parts[0] === "vitamin-tests") {
+    if (parts[1] === "focus" && parts[2] && !Number.isNaN(Number(parts[2]))) {
+      return { name: "vitamin-tests", focusTestId: Number(parts[2]) };
+    }
+    return { name: "vitamin-tests" };
+  }
   if (parts[0] === "recommendations") return { name: "recommendations" };
-  if (parts[0] === "passport") return { name: "passport" };
+  if (parts[0] === "passport") {
+    if (parts[1] === "genotype" && parts[2] && !Number.isNaN(Number(parts[2]))) {
+      return { name: "passport", focusGenotypeId: Number(parts[2]) };
+    }
+    return { name: "passport" };
+  }
+  if (parts[0] === "patient" && parts[1] === "consultations") {
+    return { name: "patient-consultations" };
+  }
   if (parts[0] === "profile") return { name: "profile" };
 
   if (parts[0] === "doctor" && parts[1] === "patients") {

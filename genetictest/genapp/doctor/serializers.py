@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 from rest_framework import serializers
 
 from genapp.models import DoctorComment, DoctorCommentHistory, UserGenotype, VitaminTestResult
@@ -98,4 +99,63 @@ class DoctorCommentHistorySerializer(serializers.ModelSerializer):
             "edited_at",
             "edited_by_id",
         ]
+
+
+class PatientDoctorCommentReadSerializer(serializers.ModelSerializer):
+    """Чтение комментариев пациентом (и список для врача). Поля по ТЗ: genetic_result_id / vitamin_reading_id."""
+
+    doctor_name = serializers.SerializerMethodField()
+    created_at = serializers.SerializerMethodField()
+    genetic_result_id = serializers.IntegerField(source="genotype_id", read_only=True)
+    vitamin_reading_id = serializers.IntegerField(source="vitamin_test_id", read_only=True)
+    was_edited = serializers.SerializerMethodField()
+    gene_symbol = serializers.SerializerMethodField()
+    vitamin_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = DoctorComment
+        fields = [
+            "id",
+            "doctor_name",
+            "text",
+            "created_at",
+            "status",
+            "genetic_result_id",
+            "vitamin_reading_id",
+            "was_edited",
+            "gene_symbol",
+            "vitamin_name",
+        ]
+
+    def get_doctor_name(self, obj):
+        u = obj.doctor
+        name = f"{u.first_name or ''} {u.last_name or ''}".strip()
+        return name or u.username or str(u.pk)
+
+    def get_created_at(self, obj):
+        dt = timezone.localtime(obj.created_at)
+        return dt.strftime("%d.%m.%Y")
+
+    def get_was_edited(self, obj):
+        if hasattr(obj, "_was_edited"):
+            return bool(obj._was_edited)
+        return obj.history.exists()
+
+    def get_gene_symbol(self, obj):
+        if not obj.genotype_id:
+            return None
+        gv = getattr(obj, "genotype", None)
+        if gv is None:
+            return None
+        gene = getattr(getattr(gv, "gene_variant", None), "gene", None)
+        return getattr(gene, "symbol", None)
+
+    def get_vitamin_name(self, obj):
+        if not obj.vitamin_test_id:
+            return None
+        vt = getattr(obj, "vitamin_test", None)
+        if vt is None:
+            return None
+        vit = getattr(vt, "vitamin", None)
+        return getattr(vit, "name", None)
 

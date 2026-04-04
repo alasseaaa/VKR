@@ -75,12 +75,10 @@ def passport_view(request):
 
 
 def articles_view(request):
-    """Старый URL /articles/ ведёт в единое SPA (страница статей)."""
     return render(request, "genapp/spa_hash_redirect.html", {"hash": "articles"})
 
 
 def spa_hash_redirect(request, fragment):
-    """Редирект старых путей Django в соответствующий hash SPA."""
     return render(request, "genapp/spa_hash_redirect.html", {"hash": fragment})
 
 
@@ -301,7 +299,6 @@ def vitamin_tests_view(request):
 
 @login_required
 def vitamin_test_delete_view(request, pk):
-    """Удаление результата анализа"""
     test = get_object_or_404(VitaminTestResult, pk=pk, user=request.user)
     
     if request.method == 'POST':
@@ -314,8 +311,4 @@ def vitamin_test_delete_view(request, pk):
 
 
 def spa_index_view(request):
-    """
-    Оболочка клиентского приложения (Bootstrap + JS).
-    Маршрутизация выполняется на клиенте через `window.location.hash`.
-    """
     return render(request, "genapp/spa/index.html")

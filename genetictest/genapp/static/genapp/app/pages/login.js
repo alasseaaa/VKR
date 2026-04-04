@@ -59,7 +59,12 @@ export async function render(pageEl, { api, route, showAlert }) {
     try {
       const res = await api.auth.login(data);
       // backend возвращает username и role
-      setBasicAuth({ username: res.username, password: data.password, role: res.role });
+      setBasicAuth({
+        username: res.username,
+        password: data.password,
+        role: res.role,
+        userId: res.id,
+      });
 
       if (res.role === "patient") window.location.hash = "#/dashboard";
       else if (res.role === "doctor") window.location.hash = "#/doctor/patients";

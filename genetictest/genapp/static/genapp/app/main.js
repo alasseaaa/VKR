@@ -47,6 +47,7 @@ async function renderPage(route) {
     "vitamin-tests": () => import("./pages/vitaminTests.js"),
     recommendations: () => import("./pages/recommendations.js"),
     passport: () => import("./pages/passport.js"),
+    "patient-consultations": () => import("./pages/patient/consultations.js"),
     profile: () => import("./pages/profile.js"),
     "doctor-patients": () => import("./pages/doctor/patients.js"),
     "doctor-profile": () => import("./pages/doctor/profile.js"),

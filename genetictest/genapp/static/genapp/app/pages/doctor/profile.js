@@ -35,14 +35,25 @@ export async function render(pageEl, { api, route, showAlert }) {
   }
 
   const genotypes = profile?.genotypes || [];
-  const vitaminTests = profile?.vitamin_tests || [];
 
-  let comments = []; // локально, т.к. нет endpoint'а получения списка
+  let comments = [];
+
+  const reloadComments = async () => {
+    try {
+      const data = await api.comments.list({ patient_id: patientId });
+      comments = Array.isArray(data) ? data : [];
+    } catch {
+      comments = [];
+    }
+    renderComments();
+  };
 
   const renderComments = () => {
-    pageEl.querySelector("#comments-list").innerHTML =
+    const listEl = pageEl.querySelector("#comments-list");
+    if (!listEl) return;
+    listEl.innerHTML =
       comments.length === 0
-        ? `<div class="text-muted small">Пока нет комментариев (отображаем созданные в текущей сессии).</div>`
+        ? `<div class="text-muted small">Пока нет комментариев.</div>`
         : comments
             .map(
               (c) => `
@@ -52,11 +63,11 @@ export async function render(pageEl, { api, route, showAlert }) {
                   <div class="fw-semibold">#${c.id}</div>
                   <div class="text-muted small">
                     ${
-                      c.vitamin_test
-                        ? `Связь: витамин-тест #${c.vitamin_test}`
-                        : c.genotype
-                          ? `Связь: генотип #${c.genotype}`
-                          : `Связь: пациент`
+                      c.vitamin_reading_id
+                        ? `Связь: анализ витамина #${c.vitamin_reading_id}`
+                        : c.genetic_result_id
+                          ? `Связь: генотип #${c.genetic_result_id}`
+                          : `Связь: пациент (общее)`
                     }
                   </div>
                 </div>
