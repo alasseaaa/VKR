@@ -15,6 +15,7 @@ from genapp.api.views import (
     DoctorCommentCreateAPIView,
     DoctorCommentUpdateAPIView,
     DoctorConclusionCreateAPIView,
+    DoctorActivityFeedAPIView,
     DoctorPatientsListAPIView,
     DoctorPatientProfileAPIView,
     LoginAPIView,
@@ -53,6 +54,7 @@ urlpatterns = [
     path("patient/genes/catalog/", PatientGeneCatalogAPIView.as_view()),
     path("patient/gene-variants/catalog/", PatientGeneVariantCatalogAPIView.as_view()),
 
+    path("doctor/activity/", DoctorActivityFeedAPIView.as_view()),
     path("doctor/patients/", DoctorPatientsListAPIView.as_view()),
     path("doctor/patients/<int:patient_id>/profile/", DoctorPatientProfileAPIView.as_view()),
     path("doctor/patients/<int:patient_id>/comments/", DoctorCommentCreateAPIView.as_view()),

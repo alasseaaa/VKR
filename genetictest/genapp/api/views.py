@@ -1,5 +1,7 @@
+from datetime import timedelta
+
 from django.contrib.auth import get_user_model
-from django.db.models import Exists, OuterRef, Q
+from django.db.models import Count, Exists, OuterRef, Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -34,7 +36,12 @@ from genapp.genetics.serializers import (
 from genapp.recommendations.serializers import RecommendationSerializer
 from genapp.recommendations.services import get_interpretation, get_user_recommendations
 from genapp.reports.patient_report_pdf import build_patient_report_pdf
-from genapp.doctor.serializers import DoctorCommentSerializer, PatientDoctorCommentReadSerializer
+from genapp.doctor.activity import get_doctor_patient_activity
+from genapp.doctor.serializers import (
+    DoctorCommentSerializer,
+    DoctorPatientListSerializer,
+    PatientDoctorCommentReadSerializer,
+)
 from genapp.users.serializers import (
     LoginSerializer,
     PatientOwnProfileUpdateSerializer,
@@ -264,17 +271,67 @@ class AdminRecommendationViewSet(viewsets.ModelViewSet):
         return Recommendation.objects.all()
 
 
+def _query_bool(param):
+    if param is None:
+        return None
+    s = str(param).strip().lower()
+    if s in ("1", "true", "yes", "on"):
+        return True
+    if s in ("0", "false", "no", "off", ""):
+        return False
+    return None
+
+
 class DoctorPatientsListAPIView(APIView):
     permission_classes = [IsDoctor]
 
     def get(self, request):
-        doctor_patients = (
-            DoctorPatient.objects.filter(doctor=request.user)
-            .select_related("patient")
-            .all()
+        patient_ids = DoctorPatient.objects.filter(doctor=request.user).values_list("patient_id", flat=True)
+        qs = (
+            User.objects.filter(id__in=patient_ids)
+            .annotate(
+                genotypes_count=Count("usergenotype_set", distinct=True),
+                vitamin_tests_count=Count("vitamin_tests", distinct=True),
+            )
+            .order_by("last_name", "first_name", "username")
         )
-        patients = [dp.patient for dp in doctor_patients]
-        data = PatientProfileSerializer(patients, many=True).data
+
+        if _query_bool(request.query_params.get("no_genotypes")) is True:
+            qs = qs.filter(genotypes_count=0)
+
+        if _query_bool(request.query_params.get("no_vitamin_tests")) is True:
+            qs = qs.filter(vitamin_tests_count=0)
+
+        idle = _parse_optional_int(request.query_params.get("inactive_days"))
+        if idle is not None and idle > 0:
+            threshold = timezone.now() - timedelta(days=idle)
+            qs = qs.filter(Q(last_login__isnull=True) | Q(last_login__lt=threshold))
+
+        if _query_bool(request.query_params.get("incomplete_profile")) is True:
+            no_profile = ~Exists(UserProfile.objects.filter(user_id=OuterRef("pk")))
+            incomplete_fields = Exists(
+                UserProfile.objects.filter(user_id=OuterRef("pk")).filter(
+                    Q(height__isnull=True)
+                    | Q(weight__isnull=True)
+                    | Q(gender="")
+                    | Q(birth_date__isnull=True)
+                )
+            )
+            qs = qs.filter(no_profile | incomplete_fields)
+
+        data = DoctorPatientListSerializer(qs, many=True).data
+        return Response(data, status=status.HTTP_200_OK)
+
+
+class DoctorActivityFeedAPIView(APIView):
+    """Лента последних событий по всем пациентам врача."""
+
+    permission_classes = [IsDoctor]
+
+    def get(self, request):
+        lim = _parse_optional_int(request.query_params.get("limit")) or 50
+        lim = min(max(lim, 1), 100)
+        data = get_doctor_patient_activity(request.user, limit=lim)
         return Response(data, status=status.HTTP_200_OK)
 
 

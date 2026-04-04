@@ -134,7 +134,8 @@ export const api = {
       request("get", "/api/patient/gene-variants/catalog/", { params }),
   },
   doctor: {
-    listPatients: () => request("get", "/api/doctor/patients/"),
+    listPatients: (params) => request("get", "/api/doctor/patients/", { params: params || {} }),
+    getActivityFeed: (params) => request("get", "/api/doctor/activity/", { params: params || {} }),
     getProfile: (patientId) => request("get", `/api/doctor/patients/${patientId}/profile/`),
     createComment: (patientId, payload) =>
       request("post", `/api/doctor/patients/${patientId}/comments/`, { data: payload }),

@@ -2,9 +2,39 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from rest_framework import serializers
 
-from genapp.models import DoctorComment, DoctorCommentHistory, UserGenotype, VitaminTestResult
+from genapp.models import DoctorComment, DoctorCommentHistory, UserGenotype, VitaminTestResult, UserProfile
+from genapp.users.serializers import UserProfileSerializer
 
 User = get_user_model()
+
+
+class DoctorPatientListSerializer(serializers.ModelSerializer):
+    """Список пациентов врача с краткой статистикой для фильтров и таблицы."""
+
+    profile = serializers.SerializerMethodField()
+    genotypes_count = serializers.IntegerField(read_only=True)
+    vitamin_tests_count = serializers.IntegerField(read_only=True)
+    last_login = serializers.DateTimeField(read_only=True, allow_null=True)
+
+    class Meta:
+        model = User
+        fields = [
+            "id",
+            "username",
+            "first_name",
+            "last_name",
+            "profile",
+            "genotypes_count",
+            "vitamin_tests_count",
+            "last_login",
+        ]
+
+    def get_profile(self, obj):
+        try:
+            profile = obj.userprofile
+        except UserProfile.DoesNotExist:
+            return None
+        return UserProfileSerializer(profile).data
 
 
 class DoctorCommentSerializer(serializers.ModelSerializer):
