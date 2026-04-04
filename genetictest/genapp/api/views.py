@@ -1,6 +1,8 @@
 from django.contrib.auth import get_user_model
 from django.db.models import Exists, OuterRef, Q
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.viewsets import ReadOnlyModelViewSet
@@ -31,6 +33,7 @@ from genapp.genetics.serializers import (
 )
 from genapp.recommendations.serializers import RecommendationSerializer
 from genapp.recommendations.services import get_interpretation, get_user_recommendations
+from genapp.reports.patient_report_pdf import build_patient_report_pdf
 from genapp.doctor.serializers import DoctorCommentSerializer, PatientDoctorCommentReadSerializer
 from genapp.users.serializers import (
     LoginSerializer,
@@ -152,6 +155,32 @@ class PatientRecommendationsAPIView(APIView):
             if user_id:
                 target_user = get_object_or_404(User, pk=user_id)
         return Response(get_user_recommendations(target_user), status=status.HTTP_200_OK)
+
+
+class PatientReportPDFAPIView(APIView):
+    """PDF: рекомендации + опубликованные комментарии врача."""
+
+    permission_classes = [IsPatientOrAdmin]
+
+    def get(self, request):
+        if get_user_role(request.user) == "doctor":
+            return Response(
+                {"detail": "Скачивание отчёта доступно только пациенту."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        target_user = request.user
+        if get_user_role(request.user) == "admin":
+            user_id = request.query_params.get("user_id")
+            if user_id:
+                target_user = get_object_or_404(User, pk=user_id)
+        try:
+            pdf_bytes = build_patient_report_pdf(target_user)
+        except RuntimeError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        filename = f"otchet_{target_user.id}_{timezone.now().strftime('%Y%m%d')}.pdf"
+        response = HttpResponse(pdf_bytes, content_type="application/pdf")
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        return response
 
 
 class PatientOwnProfileAPIView(APIView):

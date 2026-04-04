@@ -38,6 +38,41 @@ export async function request(method, url, { data, params } = {}) {
   }
 }
 
+/**
+ * Скачивание бинарного ответа (PDF и т.п.).
+ * @returns {{ blob: Blob, filename: string }}
+ */
+export async function requestBlob(method, url, { params } = {}) {
+  try {
+    const res = await axiosInstance.request({
+      method,
+      url,
+      params,
+      responseType: "blob",
+    });
+    const dispo = res.headers["content-disposition"] || "";
+    let filename = "download.pdf";
+    const m = /filename="([^"]+)"/.exec(dispo);
+    if (m) {
+      filename = m[1].trim();
+    }
+    return { blob: res.data, filename };
+  } catch (e) {
+    if (e.response?.data instanceof Blob) {
+      const t = await e.response.data.text();
+      let msg = t;
+      try {
+        const j = JSON.parse(t);
+        msg = typeof j.detail === "string" ? j.detail : JSON.stringify(j);
+      } catch {
+        /* текст как есть */
+      }
+      throw new Error(msg);
+    }
+    throw new Error(normalizeError(e));
+  }
+}
+
 export const api = {
   /** Комментарии врача (чтение): GET /api/v1/comments/ */
   comments: {
@@ -75,6 +110,19 @@ export const api = {
 
     getInterpretation: () => request("get", "/api/patient/interpretation/"),
     getRecommendations: () => request("get", "/api/patient/recommendations/"),
+
+    async downloadReportPdf() {
+      const { blob, filename } = await requestBlob("get", "/api/patient/report/pdf/");
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename || "otchet.pdf";
+      a.rel = "noopener";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    },
 
     getUnreadNotifications: () => request("get", "/api/patient/notifications/unread/"),
     markNotificationsRead: (ids) =>

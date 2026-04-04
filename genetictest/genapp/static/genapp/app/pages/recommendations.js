@@ -89,7 +89,7 @@ function renderCategories(categories) {
     .join("");
 }
 
-export async function render(pageEl, { api, showAlert }) {
+export async function render(pageEl, { api, showAlert, auth }) {
   pageEl.innerHTML = `<div class="card"><div class="card-body">Загрузка рекомендаций...</div></div>`;
 
   try {
@@ -106,7 +106,14 @@ export async function render(pageEl, { api, showAlert }) {
     pageEl.innerHTML = `
       <div class="app-page">
       <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
-        <h3 class="mb-0">Рекомендации</h3>
+        <div class="d-flex flex-wrap align-items-center gap-2">
+          <h3 class="mb-0">Рекомендации</h3>
+          ${
+            auth?.role === "patient"
+              ? `<button type="button" class="btn btn-outline-danger btn-sm" id="btn-rec-pdf"><i class="bi bi-file-earmark-pdf me-1"></i>Отчёт PDF</button>`
+              : ""
+          }
+        </div>
         <a class="btn btn-outline-secondary btn-sm" href="#/dashboard">На дашборд</a>
       </div>
 
@@ -148,6 +155,17 @@ export async function render(pageEl, { api, showAlert }) {
     };
 
     paint();
+    const btnRecPdf = pageEl.querySelector("#btn-rec-pdf");
+    if (btnRecPdf) {
+      btnRecPdf.addEventListener("click", async () => {
+        try {
+          await api.patient.downloadReportPdf();
+          showAlert("success", "PDF-отчёт сохранён.");
+        } catch (e) {
+          showAlert("danger", e.message);
+        }
+      });
+    }
     let debounce;
     searchEl.addEventListener("input", () => {
       clearTimeout(debounce);

@@ -24,6 +24,7 @@ from genapp.api.views import (
     PatientNotificationsUnreadAPIView,
     PatientOwnProfileAPIView,
     PatientRecommendationsAPIView,
+    PatientReportPDFAPIView,
     PatientVitaminTestViewSet,
     RegisterAPIView,
 )
@@ -47,6 +48,7 @@ urlpatterns = [
     path("patient/notifications/unread/", PatientNotificationsUnreadAPIView.as_view()),
     path("patient/notifications/mark-read/", PatientNotificationsMarkReadAPIView.as_view()),
     path("patient/recommendations/", PatientRecommendationsAPIView.as_view()),
+    path("patient/report/pdf/", PatientReportPDFAPIView.as_view()),
     path("patient/vitamins/catalog/", PatientVitaminCatalogAPIView.as_view()),
     path("patient/genes/catalog/", PatientGeneCatalogAPIView.as_view()),
     path("patient/gene-variants/catalog/", PatientGeneVariantCatalogAPIView.as_view()),

@@ -107,9 +107,19 @@ export async function render(pageEl, { api, auth, showAlert }) {
     </div>`;
   }
 
+  const pdfToolbar =
+    auth.role === "patient"
+      ? `<div class="d-flex flex-wrap gap-2 mb-3">
+          <button type="button" class="btn btn-outline-danger btn-sm" id="btn-download-report" title="Рекомендации и комментарии врача">
+            <i class="bi bi-file-earmark-pdf me-1"></i>Скачать отчёт (PDF)
+          </button>
+        </div>`
+      : "";
+
   pageEl.innerHTML = `
     <div class="app-page">
     ${notifBanner}
+    ${pdfToolbar}
     <div class="d-flex flex-wrap align-items-start justify-content-between gap-2 mb-3">
       <div>
         <h3 class="mb-1">Дашборд</h3>
@@ -179,6 +189,18 @@ export async function render(pageEl, { api, auth, showAlert }) {
       const r = await requestBrowserNotificationPermission();
       if (r === "granted") showAlert("success", "Уведомления включены.");
       btnPush.closest(".alert")?.remove();
+    });
+  }
+
+  const btnPdf = pageEl.querySelector("#btn-download-report");
+  if (btnPdf) {
+    btnPdf.addEventListener("click", async () => {
+      try {
+        await api.patient.downloadReportPdf();
+        showAlert("success", "PDF-отчёт сохранён.");
+      } catch (e) {
+        showAlert("danger", e.message);
+      }
     });
   }
 }
