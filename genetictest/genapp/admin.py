@@ -6,6 +6,7 @@ from .models import (
     UserProfile, Gene, GeneVariant, Recommendation,
     GeneVariantRecommendation, UserGenotype, UserRecommendation,
     Article, Vitamin, GeneVitamin, VitaminGenotypeEffect, Vitamin, VitaminTestResult, DoctorComment, DoctorPatient, DoctorCommentHistory,
+    InPersonAppointment,
     PatientNotification,
 )
 
@@ -43,6 +44,14 @@ class VitaminTestResultAdmin(admin.ModelAdmin):
     list_filter = ('vitamin', 'test_date', 'user')
     search_fields = ('user__username', 'vitamin__name')
 admin.site.register(DoctorPatient)
+
+
+@admin.register(InPersonAppointment)
+class InPersonAppointmentAdmin(admin.ModelAdmin):
+    list_display = ("id", "patient", "doctor", "status", "requested_start", "created_at")
+    list_filter = ("status", "created_at")
+    search_fields = ("patient__username", "doctor__username")
+    raw_id_fields = ("patient", "doctor")
 admin.site.register(DoctorComment)
 admin.site.register(DoctorCommentHistory)
 admin.site.register(PatientNotification)

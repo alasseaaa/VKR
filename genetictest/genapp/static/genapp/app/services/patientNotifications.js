@@ -34,8 +34,8 @@ function handleNewNotifications(items, api) {
     title = fresh[0].title || "Комментарий врача";
     body = fresh[0].body || "";
   } else {
-    title = "Новые комментарии врача";
-    body = `Вам ${fresh.length} новых сообщений. Откройте раздел «История консультаций».`;
+    title = "Новые уведомления";
+    body = `Вам ${fresh.length} новых сообщений. Откройте «Историю консультаций» или «Запись к врачу».`;
   }
 
   showAlert("info", `${title}. ${body}`.trim().slice(0, 500));
@@ -50,7 +50,8 @@ function handleNewNotifications(items, api) {
   });
   n.onclick = () => {
     window.focus();
-    window.location.hash = "#/patient/consultations";
+    const toAppointments = fresh.some((x) => x.appointment != null);
+    window.location.hash = toAppointments ? "#/appointments" : "#/patient/consultations";
     n.close();
     const ids = fresh.map((x) => Number(x.id)).filter((x) => Number.isFinite(x));
     if (ids.length) {

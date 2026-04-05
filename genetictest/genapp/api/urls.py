@@ -6,6 +6,13 @@ from genapp.api.patient_catalog import (
     PatientGeneVariantCatalogAPIView,
     PatientVitaminCatalogAPIView,
 )
+from genapp.api.appointment_views import (
+    DoctorInPersonAppointmentDetailAPIView,
+    DoctorInPersonAppointmentListAPIView,
+    PatientInPersonAppointmentDetailAPIView,
+    PatientInPersonAppointmentListCreateAPIView,
+    PatientLinkedDoctorsAPIView,
+)
 from genapp.api.views import (
     AdminGeneVariantViewSet,
     AdminGeneViewSet,
@@ -53,8 +60,14 @@ urlpatterns = [
     path("patient/vitamins/catalog/", PatientVitaminCatalogAPIView.as_view()),
     path("patient/genes/catalog/", PatientGeneCatalogAPIView.as_view()),
     path("patient/gene-variants/catalog/", PatientGeneVariantCatalogAPIView.as_view()),
+    path("patient/doctors/", PatientLinkedDoctorsAPIView.as_view()),
+    path("patient/appointments/", PatientInPersonAppointmentListCreateAPIView.as_view()),
+    path("patient/appointments/<int:pk>/", PatientInPersonAppointmentDetailAPIView.as_view()),
 
     path("doctor/activity/", DoctorActivityFeedAPIView.as_view()),
+    path("doctor/appointments/", DoctorInPersonAppointmentListAPIView.as_view()),
+    path("doctor/appointments/<int:pk>/", DoctorInPersonAppointmentDetailAPIView.as_view()),
+
     path("doctor/patients/", DoctorPatientsListAPIView.as_view()),
     path("doctor/patients/<int:patient_id>/profile/", DoctorPatientProfileAPIView.as_view()),
     path("doctor/patients/<int:patient_id>/comments/", DoctorCommentCreateAPIView.as_view()),

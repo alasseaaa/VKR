@@ -132,10 +132,19 @@ export const api = {
     listGeneCatalog: () => request("get", "/api/patient/genes/catalog/"),
     listGeneVariantCatalog: (params) =>
       request("get", "/api/patient/gene-variants/catalog/", { params }),
+
+    listLinkedDoctors: () => request("get", "/api/patient/doctors/"),
+    listAppointments: () => request("get", "/api/patient/appointments/"),
+    createAppointment: (payload) => request("post", "/api/patient/appointments/", { data: payload }),
+    cancelAppointment: (id) =>
+      request("patch", `/api/patient/appointments/${id}/`, { data: { cancel: true } }),
   },
   doctor: {
     listPatients: (params) => request("get", "/api/doctor/patients/", { params: params || {} }),
     getActivityFeed: (params) => request("get", "/api/doctor/activity/", { params: params || {} }),
+    listAppointments: (params) => request("get", "/api/doctor/appointments/", { params: params || {} }),
+    updateAppointment: (id, payload) =>
+      request("patch", `/api/doctor/appointments/${id}/`, { data: payload }),
     getProfile: (patientId) => request("get", `/api/doctor/patients/${patientId}/profile/`),
     createComment: (patientId, payload) =>
       request("post", `/api/doctor/patients/${patientId}/comments/`, { data: payload }),

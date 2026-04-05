@@ -223,7 +223,7 @@ def build_patient_report_pdf(user) -> bytes:
                     story.append(_p(desc, body_style))
                 story.append(Spacer(1, 0.15 * cm))
 
-    # --- Лечащий врач (один раз) ---
+
     story.append(Spacer(1, 0.4 * cm))
     story.append(_p("Лечащий врач", h2_style))
     doc_name = _treating_doctor_name(user)

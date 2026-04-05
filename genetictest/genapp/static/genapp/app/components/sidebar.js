@@ -48,8 +48,10 @@ export function renderSidebar() {
     if (!wellness) {
       items.push({ href: "/passport", label: "Генетический паспорт", icon: "bi-person-badge" });
     }
+    items.push({ href: "/appointments", label: "Запись к врачу", icon: "bi-calendar-check" });
     items.push({ href: "/patient/consultations", label: "История консультаций", icon: "bi-chat-square-text" });
   } else if (role === "doctor") {
+    items.push({ href: "/doctor/appointments", label: "Заявки на приём", icon: "bi-calendar-event" });
     items.push({ href: "/doctor/patients", label: "Пациенты", icon: "bi-people" });
   } else if (role === "admin") {
     items.push({ href: "/profile", label: "Профиль", icon: "bi-person-vcard" });

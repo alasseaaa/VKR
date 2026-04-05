@@ -365,6 +365,65 @@ class DoctorCommentHistory(models.Model):
         return f'History for comment #{self.comment_id} by {self.edited_by.username}'
 
 
+class InPersonAppointment(models.Model):
+    """Заявка пациента на очную встречу с врачом (подтверждение вручную)."""
+
+    STATUS_PENDING = "pending"
+    STATUS_CONFIRMED = "confirmed"
+    STATUS_DECLINED = "declined"
+    STATUS_CANCELLED_BY_PATIENT = "cancelled_by_patient"
+    STATUS_CANCELLED_BY_DOCTOR = "cancelled_by_doctor"
+
+    STATUS_CHOICES = [
+        (STATUS_PENDING, "Ожидает ответа"),
+        (STATUS_CONFIRMED, "Подтверждено"),
+        (STATUS_DECLINED, "Отклонено"),
+        (STATUS_CANCELLED_BY_PATIENT, "Отменено пациентом"),
+        (STATUS_CANCELLED_BY_DOCTOR, "Отменено врачом"),
+    ]
+
+    patient = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="in_person_appointments_as_patient",
+        verbose_name="Пациент",
+    )
+    doctor = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="in_person_appointments_as_doctor",
+        verbose_name="Врач",
+    )
+    requested_start = models.DateTimeField(verbose_name="Желаемая дата и время")
+    confirmed_start = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Подтверждённая дата и время",
+    )
+    patient_note = models.TextField(blank=True, verbose_name="Комментарий пациента")
+    doctor_message = models.TextField(blank=True, verbose_name="Сообщение врача")
+    status = models.CharField(
+        max_length=32,
+        choices=STATUS_CHOICES,
+        default=STATUS_PENDING,
+        verbose_name="Статус",
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Создано")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Обновлено")
+
+    class Meta:
+        verbose_name = "Заявка на очный приём"
+        verbose_name_plural = "Заявки на очные приёмы"
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["patient", "status"]),
+            models.Index(fields=["doctor", "status"]),
+        ]
+
+    def __str__(self):
+        return f"{self.patient.username} → {self.doctor.username} ({self.get_status_display()})"
+
+
 class PatientNotification(models.Model):
     """Push/in-app уведомление пациента (например, опубликованный комментарий врача)."""
 
@@ -381,6 +440,14 @@ class PatientNotification(models.Model):
         null=True,
         blank=True,
         verbose_name="Комментарий",
+    )
+    appointment = models.ForeignKey(
+        "InPersonAppointment",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="patient_notifications",
+        verbose_name="Заявка на приём",
     )
     title = models.CharField(max_length=200, verbose_name="Заголовок")
     body = models.TextField(blank=True, verbose_name="Текст")

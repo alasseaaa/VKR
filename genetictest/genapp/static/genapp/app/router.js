@@ -39,8 +39,19 @@ export function parseRoute() {
   if (parts[0] === "patient" && parts[1] === "consultations") {
     return { name: "patient-consultations" };
   }
+  // Заявка на очный приём (канонический URL: #/appointments)
+  if (parts[0] === "appointments" && parts.length === 1) {
+    return { name: "patient-appointments" };
+  }
+  // Старые ссылки #/patient/appointments
+  if (parts[0] === "patient" && parts[1] === "appointments") {
+    return { name: "patient-appointments" };
+  }
   if (parts[0] === "profile") return { name: "profile" };
 
+  if (parts[0] === "doctor" && parts[1] === "appointments") {
+    return { name: "doctor-appointments" };
+  }
   if (parts[0] === "doctor" && parts[1] === "patients") {
     if (parts[2]) return { name: "doctor-profile", patientId: Number(parts[2]) };
     return { name: "doctor-patients" };

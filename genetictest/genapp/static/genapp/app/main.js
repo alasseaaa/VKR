@@ -1,8 +1,8 @@
-import { parseRoute } from "./router.js";
+import { parseRoute } from "./router.js?v=4";
 import { showAlert, clearAlert } from "./components/alerts.js";
 import { renderSidebar } from "./components/sidebar.js";
 import { getAuth, isAuthed } from "./services/auth.js";
-import { api } from "./services/api.js";
+import { api } from "./services/api.js?v=2";
 import {
   startPatientNotificationPolling,
   stopPatientNotificationPolling,
@@ -47,13 +47,15 @@ async function renderPage(route) {
     register: () => import("./pages/register.js"),
     articles: () => import("./pages/articles.js"),
     "article-detail": () => import("./pages/articles.js"),
-    dashboard: () => import("./pages/dashboard.js"),
+    dashboard: () => import("./pages/dashboard.js?v=2"),
     genotypes: () => import("./pages/genotypes.js"),
     "vitamin-tests": () => import("./pages/vitaminTests.js"),
     recommendations: () => import("./pages/recommendations.js"),
     passport: () => import("./pages/passport.js"),
     "patient-consultations": () => import("./pages/patient/consultations.js"),
+    "patient-appointments": () => import("./pages/patient/appointments.js?v=2"),
     profile: () => import("./pages/profile.js"),
+    "doctor-appointments": () => import("./pages/doctor/appointments.js"),
     "doctor-patients": () => import("./pages/doctor/patients.js"),
     "doctor-profile": () => import("./pages/doctor/profile.js"),
     "admin-genes": () => import("./pages/admin/genes.js"),

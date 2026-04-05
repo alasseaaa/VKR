@@ -1,4 +1,5 @@
 import json
+from django.conf import settings
 from django.db.models import Q, Count, Max
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout, authenticate
@@ -311,4 +312,4 @@ def vitamin_test_delete_view(request, pk):
 
 
 def spa_index_view(request):
-    return render(request, "genapp/spa/index.html")
+    return render(request, "genapp/spa/index.html", {"debug": settings.DEBUG})

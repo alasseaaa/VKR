@@ -15,6 +15,18 @@ urlpatterns = [
     path("articles/", views.articles_view, name="articles"),
     path("vitamin-tests/", views.spa_hash_redirect, {"fragment": "vitamin-tests"}, name="vitamin_tests"),
     path(
+        "patient/appointments/",
+        views.spa_hash_redirect,
+        {"fragment": "appointments"},
+        name="patient_appointments",
+    ),
+    path(
+        "appointments/",
+        views.spa_hash_redirect,
+        {"fragment": "appointments"},
+        name="appointments_spa",
+    ),
+    path(
         "vitamin-tests/delete/<int:pk>/",
         views.spa_hash_redirect,
         {"fragment": "vitamin-tests"},

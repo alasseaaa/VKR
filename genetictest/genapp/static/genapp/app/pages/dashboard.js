@@ -55,6 +55,13 @@ function renderCards({ genotypesCount, vitaminTestsCount, deficiencyCount, norma
 export async function render(pageEl, { api, auth, showAlert }) {
   pageEl.innerHTML = `<div class="card"><div class="card-body">Загрузка...</div></div>`;
 
+  const role = String(auth?.role ?? "")
+    .trim()
+    .toLowerCase();
+  const isDoctor = role === "doctor";
+  const showAppointmentCta = !isDoctor;
+  const showPatientPdf = role === "patient" || role === "admin";
+
   const [genotypes, vitaminTests, recommendations] = await Promise.all([
     api.patient.listGenotypes(),
     api.patient.listVitaminTests(),
@@ -76,7 +83,7 @@ export async function render(pageEl, { api, auth, showAlert }) {
   let patientDisplay = auth.username || "";
   let patientProfile = null;
 
-  if (auth.role === "patient" || auth.role === "admin") {
+  if (role === "patient" || role === "admin") {
     try {
       patientProfile = await api.patient.getProfile();
       const p = patientProfile;
@@ -97,7 +104,7 @@ export async function render(pageEl, { api, auth, showAlert }) {
     }
   }
 
-  const wellnessMode = auth.role === "patient" && Boolean(patientProfile?.without_genetic_test);
+  const wellnessMode = role === "patient" && Boolean(patientProfile?.without_genetic_test);
   const wellnessBanner = wellnessMode
     ? `<div class="alert alert-success border-0 bg-success bg-opacity-10 mb-3 small">
         <div class="fw-semibold mb-1">Режим без генетического теста</div>
@@ -107,13 +114,11 @@ export async function render(pageEl, { api, auth, showAlert }) {
     : "";
 
   const weeklyFocusBlock =
-    auth.role === "patient"
-      ? `<div id="weekly-focus-root" class="mb-0"></div>`
-      : "";
+    role === "patient" ? `<div id="weekly-focus-root" class="mb-0"></div>` : "";
 
   let notifBanner = "";
   if (
-    auth.role === "patient" &&
+    role === "patient" &&
     typeof Notification !== "undefined" &&
     Notification.permission === "default"
   ) {
@@ -124,17 +129,31 @@ export async function render(pageEl, { api, auth, showAlert }) {
     </div>`;
   }
 
-  const pdfToolbar =
-    auth.role === "patient"
-      ? `<div class="d-flex flex-wrap gap-2 mb-3">
+  const appointmentCtaCard = showAppointmentCta
+    ? `<div class="card border-primary shadow-sm mb-3" style="border-width: 2px;">
+        <div class="card-body d-flex flex-wrap align-items-center justify-content-between gap-3 py-3">
+          <div class="flex-grow-1" style="min-width: 200px;">
+            <div class="fw-semibold text-primary">Запись на очный приём</div>
+            <p class="text-muted small mb-0">Выберите удобное время — лечащий врач подтвердит встречу, предложит другое время или ответит в заявке.</p>
+          </div>
+          <a class="btn btn-primary px-4" href="#/appointments">
+            <i class="bi bi-calendar-check me-2"></i>Записаться к врачу
+          </a>
+        </div>
+      </div>`
+    : "";
+
+  const pdfToolbar = showPatientPdf
+    ? `<div class="d-flex flex-wrap gap-2 mb-3">
           <button type="button" class="btn btn-outline-danger btn-sm" id="btn-download-report" title="Рекомендации и комментарии врача">
             <i class="bi bi-file-earmark-pdf me-1"></i>Скачать отчёт (PDF)
           </button>
         </div>`
-      : "";
+    : "";
 
   pageEl.innerHTML = `
     <div class="app-page">
+    ${appointmentCtaCard}
     ${notifBanner}
     ${pdfToolbar}
     ${wellnessBanner}
@@ -167,9 +186,11 @@ export async function render(pageEl, { api, auth, showAlert }) {
             wellnessMode
               ? `<li class="mb-1">Статьи категории «Общее здоровье» подходят без генетического теста.</li>
                  <li class="mb-1">Комментарии врача и история консультаций доступны, если вы прикреплены к лечащему врачу.</li>
+                 <li class="mb-1">Запись на очный приём — кнопка выше или меню «Запись к врачу».</li>
                  <li>Чтобы работать с ДНК-данными, отключите режим в профиле — появятся «Генетические данные» и паспорт.</li>`
               : `<li class="mb-1">Новые варианты генов удобно добавлять списком и сразу переходить в паспорт.</li>
                  <li class="mb-1">Статусы витаминов считаются относительно справочных диапазонов в системе.</li>
+                 <li class="mb-1">Очный приём: кнопка выше или пункт меню «Запись к врачу» (если врач закреплён за вами).</li>
                  <li>Рекомендации группируются по смысловым категориям — на странице «Рекомендации» есть поиск и фильтр по категории.</li>`
           }
         </ul>
